@@ -29,6 +29,8 @@ namespace LightningAuction.Controllers
         public AuctionEntries GetEntries()
         {
             var entries = _auctionService.GetAuctionEntries();
+            if (entries == null)
+                return new AuctionEntries();
             var res = new AuctionEntries()
             {
                 entries = new List<Entry>()

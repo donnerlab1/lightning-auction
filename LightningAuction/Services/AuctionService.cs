@@ -31,12 +31,13 @@ namespace LightningAuction.Services
             this.lndService = lndService;
             WinnerMessage = "";
             lndService.AddHoldInvoiceListener(LndService_OnHoldInvoiceActivated);
-            StartAuction();
             
         }
 
         public async Task<string> RequestAuctionEntry(long amount, string text)
         {
+            if (currentAuction == null)
+                return "no auction has started";
             return await lndService.GetHoldInvoice(amount, text);
         }
 
