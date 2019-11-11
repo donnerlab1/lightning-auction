@@ -65,7 +65,8 @@ namespace LightningAuction.Services
                     var invoice = _invoiceStream.ResponseStream.Current;
                     if (invoice.State == Invoice.Types.InvoiceState.Settled)
                     {
-                        OnInvoicePaid(invoice);
+                        if(OnInvoicePaid != null)
+                            OnInvoicePaid(invoice);
                     }
 
                 }

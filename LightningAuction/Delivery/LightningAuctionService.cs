@@ -68,27 +68,68 @@ namespace LightningAuction.Delivery
             return res;
         }
 
+        public override async Task<GetBidResponse> GetBid(GetBidRequest request, ServerCallContext context)
+        {
+            var entry = await _auctionService.GetBid(request.EntryId);
+            if (entry == null)
+            {
+                return new GetBidResponse();
+            }
+                
+            var res = new GetBidResponse
+            {
+
+                Entry = new AuctionEntry
+                {
+                    Amount = entry.Amount,
+                    Description = entry.Description,
+                    Id = entry.Id.ToString(),
+                    Message = entry.Message,
+                    PaymentRequest = entry.PaymentRequest,
+                    State = (AuctionEntry.Types.State)((int)entry.State)
+                }
+            };
+            return res;
+        }
+    
+
         public override async Task<ListAuctionsResponse> ListAuctions(ListAuctionsRequest request, ServerCallContext context)
         {
             var auctions = await _auctionService.GetAllAuctions(request.OnlyFinished, request.OnlyActive);
             var res = new ListAuctionsResponse();
             foreach (var auction in auctions)
             {
-                res.Auctions.Add(new Auction
+                var auctionItem = new Auction
                 {
                     Id = auction.Id.ToString(),
                     StartedAt = auction.StartedAt,
                     Duration = auction.Duration,
                     FinishedAt = auction.FinishedAt
-                });
+                };
+
+                try
+                {
+                    var winningEntry = JsonSerializer.Deserialize<LightningAuction.Models.AuctionInvoice>(auction.WinningEntry);
+                    auctionItem.WinningEntry = new AuctionEntry
+                    {
+
+                        Amount = winningEntry.Amount,
+                        Message = winningEntry.WinningMessage
+
+
+                    };
+                }
+                catch
+                {
+
+                }
+
+                res.Auctions.Add(auctionItem);
             }
             return res;
         }
 
-        public override Task SubscribeToBid(SubscribeToBidRequest request, IServerStreamWriter<SubscribeToBidResponse> responseStream, ServerCallContext context)
-        {
-            return base.SubscribeToBid(request, responseStream, context);
-        }
+    
     }
 
     public class LightningAuctionAdminService : LightningAuctionAdmin.LightningAuctionAdminBase
@@ -128,7 +169,7 @@ namespace LightningAuction.Delivery
                 res.Auction.WinningEntry = new AuctionEntry
                 {
                     Amount = winningEntry.Amount,
-                    Message = winningEntry.WinningMessage,
+                    Message = winningEntry.WinningMessage
 
                 };
             }
@@ -141,8 +182,9 @@ namespace LightningAuction.Delivery
         {
             var auction = _auctionService.GetAuction(request.AuctionId);
             
-                var res = new AdminGetAuctionResponse
+            var res = new AdminGetAuctionResponse
                 {
+
                     Auction = new Auction
                     {
                         Id = auction.Id.ToString(),
@@ -154,14 +196,17 @@ namespace LightningAuction.Delivery
                 };
                 foreach (var ae in auction.AuctionEntries)
                 {
-                    res.AuctionEntries.Add(new AuctionEntry
-                    {
-                        Amount = ae.Amount,
-                        Id = ae.Id.ToString(),
-                        Description = ae.Description,
-                        Message = ae.Message,
-                        PaymentRequest = ae.PaymentRequest
-                    });
+
+                var auctionEntry = new AuctionEntry
+                {
+                    Amount = ae.Amount,
+                    Id = ae.Id.ToString(),
+                    Description = ae.Description,
+                    Message = ae.Message,
+                    PaymentRequest = ae.PaymentRequest
+                };
+                    res.AuctionEntries.Add(auctionEntry);
+                    
                 }
 
             return res;
@@ -173,13 +218,32 @@ namespace LightningAuction.Delivery
             var res = new ListAuctionsResponse();
             foreach(var auction in auctions)
             {
-                res.Auctions.Add(new Auction
+                var auctionItem = new Auction
                 {
                     Id = auction.Id.ToString(),
                     StartedAt = auction.StartedAt,
                     Duration = auction.Duration,
                     FinishedAt = auction.FinishedAt
-                });
+                };
+                
+                try
+                {
+                    var winningEntry = JsonSerializer.Deserialize<LightningAuction.Models.AuctionInvoice>(auction.WinningEntry);
+                    auctionItem.WinningEntry = new AuctionEntry
+                    {
+
+                        Amount = winningEntry.Amount,
+                        Message = winningEntry.WinningMessage
+
+
+                    };
+                }
+                catch
+                {
+
+                }
+
+                res.Auctions.Add(auctionItem);
             }
             return res;
         }

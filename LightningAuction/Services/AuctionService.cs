@@ -22,6 +22,7 @@ namespace LightningAuction.Services
         Task<AuctionEntry> RequestAuctionEntryInvoice(string auctionId, long amount, string winningMessage);
         Task<Auction> StartAuction(int duration);
         Task<AuctionEntry> CancelAuctionEntry(string entryId);
+        Task<AuctionEntry> GetBid(string entryId);
     }
 
     public class AuctionService : IAuctionService
@@ -231,6 +232,12 @@ namespace LightningAuction.Services
                 var auction = GetAuction(auctionInvoice.AuctionId);
                 if (auction == null)
                     return;
+                if (auction.FinishedAt != 0)
+                {
+                    await _lndService.CancelHodlInvoice(invoice.RHash.ToByteArray());
+                    return;
+                }
+                    
                 auctionEntry.ActivatedAt = Utility.Utility.DateTimeToUnix(DateTime.UtcNow);
                 auctionEntry.State = AuctionEntryState.ACTIVATED;
                 context.AuctionEntries.Update(auctionEntry);
@@ -286,6 +293,17 @@ namespace LightningAuction.Services
                 return null;
             auctionEntry.State = AuctionEntryState.CANCELED;
             await UpdateAuctionEntry(auctionEntry);
+            return auctionEntry;
+        }
+        public async Task<AuctionEntry> GetBid(string entryId)
+        {
+            AuctionEntry auctionEntry;
+            using (var context = new AuctionContext())
+            {
+                auctionEntry = context.AuctionEntries.FirstOrDefault(r => r.Id == Guid.Parse(entryId));
+                if (auctionEntry == null)
+                    return null;
+            }
             return auctionEntry;
         }
     }

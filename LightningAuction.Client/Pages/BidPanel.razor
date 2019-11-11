@@ -5,14 +5,20 @@
 
 <h1>Bid Panel</h1>
 
-<input type="number" @bind="Duration" />
-<button class="btn btn-primary" @onclick="FinishAuction">start auction</button>
-<br />
 
-@if (StartAuction == null)
+<br />
+<input type="text" @bind="AuctionId" placeholder="AuctionId..." />
+<input type="number" @bind="Amount" placeholder="amount..." />
+<input type="text" @bind="Text" placeholder="text..." />
+<button class="btn btn-primary" @onclick="AddBid">place bid</button>
+
+<input type="text" @bind="AuctionEntryId" placeholder="BidId..." />
+<button class="btn btn-primary" @onclick="UpdateBid">lookup bid</button>
+<br />
+@if (auctionEntry == null)
 {
 
-    <p><em>start auction...</em></p>
+    <p><em>request auction entry</em></p>
 }
 else
 {
@@ -20,47 +26,22 @@ else
         <thead>
             <tr>
                 <th>Id</th>
-                <th>started at</th>
-                <th>duration</th>
+                <th>state</th>
+                <th>amount</th>
+                <th>message</th>
+                <th>invoice</th>
 
             </tr>
         </thead>
         <tbody>
 
             <tr>
-                <td>@StartAuction.Id</td>
-                <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(StartAuction.StartedAt).ToString()</td>
-                <td>@StartAuction.Duration seconds</td>
-            </tr>
-        </tbody>
-    </table>
-}
-<br />
-<input type="text" @bind="AuctionId" />
-<button class="btn btn-primary" @onclick="FinishAuction">end auction</button>
-<br />
-@if (EndAuction == null)
-{
+                <td>@auctionEntry.Id</td>
+                <td>@auctionEntry.State</td>
+                <td>@auctionEntry.Amount</td>
+                <td>@auctionEntry.Message</td>
+                <td>@auctionEntry.PaymentRequest</td>
 
-    <p><em>end auction...</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>started at</th>
-                <th>finished at</th>
-
-            </tr>
-        </thead>
-        <tbody>
-
-            <tr>
-                <td>@EndAuction.Id</td>
-                <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(EndAuction.StartedAt).ToString()</td>
-                <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(EndAuction.FinishedAt).ToString()</td>
             </tr>
         </tbody>
     </table>
@@ -68,38 +49,41 @@ else
 
 
 @code {
-    private Auction StartAuction;
-    private int Duration = 3600;
     private string AuctionId;
-    private Auction EndAuction;
+    private long Amount;
+    private string Text;
+    private string AuctionEntryId;
+    private AuctionEntry auctionEntry;
 
     Channel channel;
-    LightningAuctionAdmin.LightningAuctionAdminClient client;
+    LightningAuctionBidder.LightningAuctionBidderClient client;
     protected override async Task OnInitializedAsync()
     {
         channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
-        client = new LightningAuctionAdmin.LightningAuctionAdminClient(channel);
+        client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
 
     }
-    private async void NewAuction()
+    private async void AddBid()
     {
-
-        var res = await client.StartAuctionAsync(new StartAuctionRequest
+        var res = await client.BidAsync(new BidRequest
         {
-            Duration = Duration
+            Amount = Amount,
+            AuctionId = AuctionId,
+            Message = Text
         });
-        StartAuction = res.Auction;
+
+        auctionEntry = res.Entry;
+        Console.WriteLine(res);
         StateHasChanged();
     }
-    private async void FinishAuction()
-    {
-        var res = await client.EndAuctionAsync(new EndAuctionRequest
-        {
-            AuctionId = AuctionId
-        });
-        EndAuction = res.Auction;
-        StateHasChanged();
 
+    private async void UpdateBid()
+    {
+        var res = await client.GetBidAsync(new GetBidRequest { EntryId = AuctionEntryId });
+        auctionEntry = res.Entry;
+        
+        Console.WriteLine(res);
+        StateHasChanged();
     }
 
 }

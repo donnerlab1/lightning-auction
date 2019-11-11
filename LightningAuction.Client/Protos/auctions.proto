@@ -7,6 +7,7 @@ package LightningAuction;
 service LightningAuctionBidder {
 	rpc Bid (BidRequest) returns (BidResponse);
 	rpc CancelBid (CancelBidRequest) returns (CancelBidResponse);
+	rpc GetBid(GetBidRequest) returns (GetBidResponse);
 	rpc GetAuction (GetAuctionRequest) returns (GetAuctionResponse);
 	rpc ListAuctions (ListAuctionsRequest) returns (ListAuctionsResponse);
 	rpc SubscribeToBid (SubscribeToBidRequest) returns (stream SubscribeToBidResponse);
@@ -33,6 +34,14 @@ message EndAuctionRequest {
 
 message EndAuctionResponse {
 	Auction auction = 1;
+}
+
+message GetBidRequest {
+	string entry_id = 1;
+}
+
+message GetBidResponse {
+	AuctionEntry entry = 1;
 }
 
 message AdminGetAuctionRequest {

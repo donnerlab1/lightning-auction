@@ -28,6 +28,7 @@ else
         <tbody>
             @foreach (var auction in auctions)
             {
+                Console.WriteLine(auction);
                 <tr>
                     <td>@auction.Id</td>
                     <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auction.StartedAt).ToString()</td>
