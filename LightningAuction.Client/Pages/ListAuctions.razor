@@ -1,0 +1,65 @@
+﻿@page "/auctionlist"
+
+@using LightningAuction.Delivery
+
+
+<h1>Auction List</h1>
+
+
+@if (auctions == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>started at</th>
+                <th>duration</th>
+                <th>finished at</th>
+                <th>winning message</th>
+                <th>
+                    <button class="btn btn-primary" @onclick="RefreshList"><span class="glyphicon glyphicon-refresh"></span>Refresh</button>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var auction in auctions)
+            {
+                <tr>
+                    <td>@auction.Id</td>
+                    <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auction.StartedAt).ToString()</td>
+                    <td>@auction.Duration seconds</td>
+                    <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auction.FinishedAt).ToString()</td>
+                    <td>@auction.WinningEntry</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    Auction[] auctions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var channel = new Channel("127.0.0.1",5113, ChannelCredentials.Insecure);
+        var client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
+
+
+        var res = await client.ListAuctionsAsync(new ListAuctionsRequest { });
+        auctions = res.Auctions.ToArray();
+    }
+
+    private async void RefreshList()
+    {
+        var channel = new Channel("127.0.0.1",5113, ChannelCredentials.Insecure);
+        var client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
+
+
+        var res = await client.ListAuctionsAsync(new ListAuctionsRequest { });
+        auctions = res.Auctions.ToArray();
+    }
+}

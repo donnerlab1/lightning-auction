@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace LightningAuction
+namespace LightningAuction.Client
 {
     public class Program
     {
@@ -21,18 +22,7 @@ namespace LightningAuction
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    
-                    webBuilder.ConfigureKestrel(options =>
-                    {
-                        options.Listen(IPAddress.Parse("127.0.0.1"),5113, listOptions =>
-                        {
-                            listOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2;
-                            listOptions.UseConnectionLogging();
-                        });
-
-                    });
                     webBuilder.UseStartup<Startup>();
-
                 });
     }
 }

@@ -1,0 +1,106 @@
+﻿@page "/bidpanel"
+
+@using LightningAuction.Delivery
+
+
+<h1>Bid Panel</h1>
+
+<input type="number" @bind="Duration" />
+<button class="btn btn-primary" @onclick="FinishAuction">start auction</button>
+<br />
+
+@if (StartAuction == null)
+{
+
+    <p><em>start auction...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>started at</th>
+                <th>duration</th>
+
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr>
+                <td>@StartAuction.Id</td>
+                <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(StartAuction.StartedAt).ToString()</td>
+                <td>@StartAuction.Duration seconds</td>
+            </tr>
+        </tbody>
+    </table>
+}
+<br />
+<input type="text" @bind="AuctionId" />
+<button class="btn btn-primary" @onclick="FinishAuction">end auction</button>
+<br />
+@if (EndAuction == null)
+{
+
+    <p><em>end auction...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>started at</th>
+                <th>finished at</th>
+
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr>
+                <td>@EndAuction.Id</td>
+                <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(EndAuction.StartedAt).ToString()</td>
+                <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(EndAuction.FinishedAt).ToString()</td>
+            </tr>
+        </tbody>
+    </table>
+}
+
+
+@code {
+    private Auction StartAuction;
+    private int Duration = 3600;
+    private string AuctionId;
+    private Auction EndAuction;
+
+    Channel channel;
+    LightningAuctionAdmin.LightningAuctionAdminClient client;
+    protected override async Task OnInitializedAsync()
+    {
+        channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
+        client = new LightningAuctionAdmin.LightningAuctionAdminClient(channel);
+
+    }
+    private async void NewAuction()
+    {
+
+        var res = await client.StartAuctionAsync(new StartAuctionRequest
+        {
+            Duration = Duration
+        });
+        StartAuction = res.Auction;
+        StateHasChanged();
+    }
+    private async void FinishAuction()
+    {
+        var res = await client.EndAuctionAsync(new EndAuctionRequest
+        {
+            AuctionId = AuctionId
+        });
+        EndAuction = res.Auction;
+        StateHasChanged();
+
+    }
+
+}
+

@@ -95,7 +95,7 @@ namespace LightningAuction.Models
         SETTLED
     }
     [Serializable]
-    public struct AuctionInvoice
+    public class AuctionInvoice
     {
         public string AuctionId { get; set; }
         public long Amount { get; set; }

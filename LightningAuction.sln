@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26124.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29424.173
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningAuction", "LightningAuction\LightningAuction.csproj", "{EEA4FCA7-20BD-4C98-B510-CC17500F12F4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightningAuction", "LightningAuction\LightningAuction.csproj", "{EEA4FCA7-20BD-4C98-B510-CC17500F12F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningAuction.Tests", "LightningAuction.Tests\LightningAuction.Tests.csproj", "{452B9880-F87C-4390-9303-D63AC6EE6014}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightningAuction.Tests", "LightningAuction.Tests\LightningAuction.Tests.csproj", "{452B9880-F87C-4390-9303-D63AC6EE6014}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningAuction.Client", "LightningAuction.Client\LightningAuction.Client.csproj", "{40408D79-84FE-43CB-B36B-3D29FF671C68}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,9 +17,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{EEA4FCA7-20BD-4C98-B510-CC17500F12F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -44,5 +43,23 @@ Global
 		{452B9880-F87C-4390-9303-D63AC6EE6014}.Release|x64.Build.0 = Release|Any CPU
 		{452B9880-F87C-4390-9303-D63AC6EE6014}.Release|x86.ActiveCfg = Release|Any CPU
 		{452B9880-F87C-4390-9303-D63AC6EE6014}.Release|x86.Build.0 = Release|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Debug|x64.Build.0 = Debug|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Debug|x86.Build.0 = Debug|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Release|x64.ActiveCfg = Release|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Release|x64.Build.0 = Release|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Release|x86.ActiveCfg = Release|Any CPU
+		{40408D79-84FE-43CB-B36B-3D29FF671C68}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C91C8487-F48F-4F64-9DFE-DA7B2EFFB9EC}
 	EndGlobalSection
 EndGlobal

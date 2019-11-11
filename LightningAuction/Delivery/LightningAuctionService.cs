@@ -102,8 +102,16 @@ namespace LightningAuction.Delivery
         public override async Task<EndAuctionResponse> EndAuction(EndAuctionRequest request, ServerCallContext context)
         {
             var auction = await _auctionService.EndAuction(request.AuctionId);
-            var winningEntry = JsonSerializer.Deserialize<LightningAuction.Models.AuctionInvoice>(auction.WinningEntry);
-            return new EndAuctionResponse
+            Models.AuctionInvoice winningEntry = null;
+            try
+            {
+                winningEntry = JsonSerializer.Deserialize<LightningAuction.Models.AuctionInvoice>(auction.WinningEntry);
+            }
+            catch
+            {
+
+            }
+            var res = new EndAuctionResponse
             {
                 Auction = new Auction
                 {
@@ -111,40 +119,50 @@ namespace LightningAuction.Delivery
                     StartedAt = auction.StartedAt,
                     Duration = auction.Duration,
                     FinishedAt = auction.FinishedAt,
-                    WinningEntry = new AuctionEntry
-                    {
-                        Amount = winningEntry.Amount,
-                        Description = auction.WinningEntry,
-                        Message = winningEntry.WinningMessage
-                    }
+
                 }
             };
+
+            if (winningEntry != null)
+            {
+                res.Auction.WinningEntry = new AuctionEntry
+                {
+                    Amount = winningEntry.Amount,
+                    Message = winningEntry.WinningMessage,
+
+                };
+            }
+
+
+            return res;
         }
 
         public override async Task<AdminGetAuctionResponse> GetAuction(AdminGetAuctionRequest request, ServerCallContext context)
         {
             var auction = _auctionService.GetAuction(request.AuctionId);
-            var res = new AdminGetAuctionResponse
-            {
-                Auction = new Auction
+            
+                var res = new AdminGetAuctionResponse
                 {
-                    Id = auction.Id.ToString(),
-                    StartedAt = auction.StartedAt,
-                    Duration = auction.Duration,
-                    FinishedAt = auction.FinishedAt,
-                }
+                    Auction = new Auction
+                    {
+                        Id = auction.Id.ToString(),
+                        StartedAt = auction.StartedAt,
+                        Duration = auction.Duration,
+                        FinishedAt = auction.FinishedAt,
+                    }
 
-            };
-            foreach (var ae in auction.AuctionEntries) {
-                res.AuctionEntries.Add(new AuctionEntry
+                };
+                foreach (var ae in auction.AuctionEntries)
                 {
-                    Amount = ae.Amount,
-                    Id = ae.Id.ToString(),
-                    Description = ae.Description,
-                    Message = ae.Message,
-                    PaymentRequest = ae.PaymentRequest
-                });
-            }
+                    res.AuctionEntries.Add(new AuctionEntry
+                    {
+                        Amount = ae.Amount,
+                        Id = ae.Id.ToString(),
+                        Description = ae.Description,
+                        Message = ae.Message,
+                        PaymentRequest = ae.PaymentRequest
+                    });
+                }
 
             return res;
         }
