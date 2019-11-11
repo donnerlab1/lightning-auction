@@ -1,0 +1,113 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "LightningAuction.Delivery";
+
+package LightningAuction;
+
+service LightningAuctionBidder {
+	rpc Bid (BidRequest) returns (BidResponse);
+	rpc CancelBid (CancelBidRequest) returns (CancelBidResponse);
+	rpc GetAuction (GetAuctionRequest) returns (GetAuctionResponse);
+	rpc ListAuctions (ListAuctionsRequest) returns (ListAuctionsResponse);
+	rpc SubscribeToBid (SubscribeToBidRequest) returns (stream SubscribeToBidResponse);
+}
+
+service LightningAuctionAdmin {
+	rpc StartAuction (StartAuctionRequest) returns (StartAuctionResponse);
+	rpc EndAuction (EndAuctionRequest) returns (EndAuctionResponse);
+	rpc GetAuction (AdminGetAuctionRequest) returns (AdminGetAuctionResponse);
+	rpc ListAuctions (ListAuctionsRequest) returns (ListAuctionsResponse);
+}
+
+message StartAuctionRequest {
+	int32 duration = 1;
+}
+
+message StartAuctionResponse {
+	Auction auction = 1;
+}
+
+message EndAuctionRequest {
+	string auction_id = 1;
+}
+
+message EndAuctionResponse {
+	Auction auction = 1;
+}
+
+message AdminGetAuctionRequest {
+	string auction_id = 1;
+}
+message AdminGetAuctionResponse {
+	Auction auction = 1;
+	repeated AuctionEntry auction_entries = 2;
+}
+
+message BidRequest {
+	string auction_id = 1;
+	string message = 2;
+	int64 amount = 3;
+}
+
+message BidResponse {
+	AuctionEntry entry = 1;
+}
+
+message CancelBidRequest {
+	string entry_id = 1;
+}
+
+message CancelBidResponse {
+	bool ok = 1;
+}
+
+message GetAuctionRequest {
+	string auction_id = 1;
+}
+
+message GetAuctionResponse {
+	Auction auction = 1;
+}
+
+message ListAuctionsRequest {
+	bool onlyActive = 1;
+	bool onlyFinished = 2;
+}
+
+message ListAuctionsResponse {
+	repeated Auction auctions = 1;
+}
+
+message SubscribeToBidRequest {
+	string entry_id = 1;
+}
+
+message SubscribeToBidResponse {
+	AuctionEntry entry = 1;
+}
+
+message Auction {
+	string id = 1;
+	int32 started_at = 2;
+	int32 duration= 3;
+	int32 finished_at = 4;
+	AuctionEntry winning_entry = 5;
+}
+
+message AuctionEntry {
+	string id = 1;
+	string message = 2;
+	int64 amount = 3;
+	string payment_request = 4;
+	string description = 5;
+	State state = 6;
+	enum State {
+		AUCTIONENTRY_OPEN = 0;
+		AUCTIONENTRY_ACCEPTED = 1;
+		AUCTIONENTRY_CANCELeD = 2;
+		AUCTIONENTRY_SETTLED = 3;
+	}
+}
+
+
+

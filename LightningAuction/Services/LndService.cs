@@ -21,9 +21,10 @@ namespace LightningAuction.Services
 
         public event InvoiceActiveEventHandler OnHoldInvoiceActivated;
         private event InvoiceCreatedEventHandler OnInvoiceCreated;
+        private event InvoicePaidEventHandler OnInvoicePaid;
 
         private RNGCryptoServiceProvider provider;
-        private Dictionary<string,byte[]> preImages;
+        private Grpc.Core.Channel lndChannel;
         public LndService(IConfiguration config)
         {
             var directory = Environment.CurrentDirectory;
@@ -34,7 +35,7 @@ namespace LightningAuction.Services
 
             var channelCreds = ChannelCredentials.Create(new SslCredentials(tls), macaroonCallCredentials.credentials);
 
-            var lndChannel = new Grpc.Core.Channel(rpc, channelCreds);
+            lndChannel = new Grpc.Core.Channel(rpc, channelCreds);
             lightningClient = new Lightning.LightningClient(lndChannel);
             invoicesClient = new Invoices.InvoicesClient(lndChannel);
 
@@ -42,30 +43,63 @@ namespace LightningAuction.Services
             provider = new RNGCryptoServiceProvider();
             OnInvoiceCreated += LndService_OnInvoiceCreated;
             Console.WriteLine(getInfo.ToString());
-            preImages = new Dictionary<string, byte[]>();
+            //CancelExistingInvoices();
+
+            ListenInvoices();
         }
 
-        private void LndService_OnInvoiceCreated(object sender, Invoice invoice)
+        private void LndService_OnInvoiceCreated(object sender, Invoice invoice, byte[] preImage)
         {
             Console.WriteLine("ON INVOICE CREATED");
-            SubscribeHoldInvoices(invoice.RHash);
+            SubscribeHoldInvoices(invoice.RHash, preImage);
             Console.WriteLine("ON INVOICE Done");
         }
+        public async void ListenInvoices()
+        {
+            var request = new InvoiceSubscription();
+
+            using (var _invoiceStream = lightningClient.SubscribeInvoices(request))
+            {
+                while (!lndChannel.ShutdownToken.IsCancellationRequested && await _invoiceStream.ResponseStream.MoveNext())
+                {
+                    var invoice = _invoiceStream.ResponseStream.Current;
+                    if (invoice.State == Invoice.Types.InvoiceState.Settled)
+                    {
+                        OnInvoicePaid(invoice);
+                    }
+
+                }
+            }
+            if (!lndChannel.ShutdownToken.IsCancellationRequested)
+            {
+                await Task.Delay(1000);
+                ListenInvoices();
+            }
 
 
-        public async Task<string> GetHoldInvoice(long amount, string message)
+        }
+
+        
+
+
+        public async Task<HoldInvoiceResponse> GetHoldInvoice(long amount, string message)
         {
             var preImage = GetRandomBytes();
             var rHash = GetRHash(preImage);
-            var invoice = new Invoice { Value = amount, Memo = message, RHash = rHash, RPreimage = Google.Protobuf.ByteString.CopyFrom(preImage) };
+            var invoice = new Invoice { Value = amount, Memo = message, RHash = Google.Protobuf.ByteString.CopyFrom(rHash), RPreimage = Google.Protobuf.ByteString.CopyFrom(preImage) };
 
-            OnInvoiceCreated.Invoke(this, invoice);
-            var res = await invoicesClient.AddHoldInvoiceAsync(new AddHoldInvoiceRequest { Value = amount, Memo = message,Hash = invoice.RHash });
-            preImages.Add(res.PaymentRequest, preImage);
-            return res.PaymentRequest;
+            OnInvoiceCreated.Invoke(this, invoice, preImage);
+            var res = await invoicesClient.AddHoldInvoiceAsync(new AddHoldInvoiceRequest { Value = amount, Memo = message,Hash = invoice.RHash, CltvExpiry = 400 });
+            var holdInvoiceResponse = new HoldInvoiceResponse
+            {
+                paymentHash = rHash,
+                preImage = preImage,
+                payreq = res.PaymentRequest
+            };
+            return holdInvoiceResponse;
         }
 
-        public async void SubscribeHoldInvoices(Google.Protobuf.ByteString rHash)
+        public async void SubscribeHoldInvoices(Google.Protobuf.ByteString rHash, byte[] preImage)
         {
             var cancellationToken = new CancellationTokenSource();
             var request = new SubscribeSingleInvoiceRequest { RHash = rHash };
@@ -75,7 +109,7 @@ namespace LightningAuction.Services
                 {
 
                     Console.WriteLine("Subscribing");
-                    while (await invoiceStream.ResponseStream.MoveNext() && !cancellationToken.IsCancellationRequested)
+                    while (!cancellationToken.IsCancellationRequested && await invoiceStream.ResponseStream.MoveNext())
                     {
                         var invoice = invoiceStream.ResponseStream.Current;
 
@@ -84,7 +118,7 @@ namespace LightningAuction.Services
                         {
                             if(OnHoldInvoiceActivated != null)
                             {
-                                OnHoldInvoiceActivated.Invoke(this, invoice);
+                                OnHoldInvoiceActivated.Invoke(this, invoice,preImage);
                                 cancellationToken.Cancel();
                             }
                         }
@@ -95,31 +129,51 @@ namespace LightningAuction.Services
             {
                 Console.WriteLine("ERROR SUBSCRIBTION: " + e.Message);
             }
+
         }
 
-        public async Task SettleHodlInvoice(Invoice invoice)
+        public async Task<string> AddInvoice(string description, long amount)
         {
-            if (preImages.ContainsKey(invoice.PaymentRequest))
+            var res = await lightningClient.AddInvoiceAsync(new Invoice
             {
-                var preImage = preImages[invoice.PaymentRequest];
+                Memo = description,
+                Value = amount
+            });
+            return res.PaymentRequest;
+        }
+        public async Task<bool> SettleHodlInvoice(byte[] preimage)
+        {
+
+                Console.WriteLine("settling invoice");
                 try { 
-                await invoicesClient.SettleInvoiceAsync(new SettleInvoiceMsg { Preimage = Google.Protobuf.ByteString.CopyFrom(preImage) });
+                await invoicesClient.SettleInvoiceAsync(new SettleInvoiceMsg { Preimage = Google.Protobuf.ByteString.CopyFrom(preimage) });
+                return true;
+                
                 }catch (RpcException e)
                 {
                 Console.WriteLine("ERROR: " + e.Message);
+                return false;
                 }
-            }
+            
         }
 
-        public async Task CancelHodlInvoice(Invoice invoice)
+        private async Task<PayReq> DecodePayReq(string payreq)
+        {
+            var decoderes = await lightningClient.DecodePayReqAsync(new PayReqString { PayReq = payreq });
+            return decoderes;
+        }
+
+        public async Task<bool> CancelHodlInvoice(byte[] paymentHash)
         {
             try
             {
-
-                await invoicesClient.CancelInvoiceAsync(new CancelInvoiceMsg { PaymentHash = invoice.RHash });
+                Console.WriteLine("cancling invoice");
+                await invoicesClient.CancelInvoiceAsync(new CancelInvoiceMsg { PaymentHash = Google.Protobuf.ByteString.CopyFrom(paymentHash) });
+                return true;
             }catch(RpcException e)
             {
                 Console.WriteLine("ERROR: " + e.Message);
+                return false;
             }
         }
 
@@ -151,37 +205,53 @@ namespace LightningAuction.Services
             return byteArray;
         }
 
-        private Google.Protobuf.ByteString GetRHash(byte[] rawData)
+        private byte[] GetRHash(byte[] rawData)
         {
             using (SHA256 sha256Hash = SHA256.Create())
             {
                 // ComputeHash - returns byte array  
                 byte[] bytes = sha256Hash.ComputeHash(rawData);
 
-                return Google.Protobuf.ByteString.CopyFrom(bytes);
+                return bytes;
             }
         }
 
-
+        public void AddInvoicePaidEventHandler(InvoicePaidEventHandler e)
+        {
+            this.OnInvoicePaid += e;
+        }
     }
 
 
 
     public interface ILndService
     {
-        Task<string> GetHoldInvoice(long amount, string message);
+        Task<HoldInvoiceResponse> GetHoldInvoice(long amount, string message);
         void AddHoldInvoiceListener(InvoiceActiveEventHandler e);
 
         void RemoveHoldInvoiceListener(InvoiceActiveEventHandler e);
 
         void ResetHoldInvoiceListener();
-        Task SettleHodlInvoice(Invoice invoice);
-        Task CancelHodlInvoice(Invoice invoice);
+        Task<bool> SettleHodlInvoice(byte[] preimage);
+        Task<bool> CancelHodlInvoice(byte[] paymentHash);
 
         Task<(bool, string)> VerifyMessage(string message, string signature);
-        
+
+        Task<string> AddInvoice(string description, long amount);
+
+        void AddInvoicePaidEventHandler(InvoicePaidEventHandler e);
+
+
     }
 
-    public delegate void InvoiceActiveEventHandler(object sender, Invoice invoice);
-    public delegate void InvoiceCreatedEventHandler(object sender, Invoice invoice);
+    public delegate void InvoiceActiveEventHandler(object sender, Invoice invoice, byte[] preImage);
+    public delegate void InvoiceCreatedEventHandler(object sender, Invoice invoice, byte[] preImage);
+    public delegate void InvoicePaidEventHandler(Invoice invoice);
+
+    public struct HoldInvoiceResponse
+    {
+        public string payreq { get; set; }
+        public byte[] preImage { get; set; }
+        public byte[] paymentHash { get; set; }
+    }
 }

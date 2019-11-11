@@ -18,69 +18,56 @@ namespace LightningAuction.Controllers
         private readonly IAuctionService _auctionService;
         private readonly ILndService _lndService;
         private readonly string AuthorizedPubkey;
-        public AuctionController(IAuctionService auctionService,IConfiguration config, ILndService lndService)
+        public AuctionController(IAuctionService auctionService,IConfiguration config, ILndService lndService, IRaffleService raffleService)
         {
             _auctionService = auctionService;
             _lndService = lndService;
             AuthorizedPubkey = config.GetValue<string>("admin_pub");
         }
 
-        [HttpGet("/auction/entries")]
-        public AuctionEntries GetEntries()
+        [HttpGet("/auctions")]
+        public async Task<ListAuctionResponse> ListAuctions()
         {
-            var entries = _auctionService.GetAuctionEntries();
-            if (entries == null)
-                return new AuctionEntries();
-            var res = new AuctionEntries()
-            {
-                entries = new List<Entry>()
-            };
-            foreach(var entry in entries)
-            {
-                res.entries.Add(new Entry() { AcceptedAt = entry.ActivatedAt, amount = entry.amount, pHash = entry.invoice.RHash.ToStringUtf8() });
-            }
-            return res;
+            var res = await _auctionService.GetAllAuctions(false, false);
+            return new ListAuctionResponse { Auctions = res};
         }
 
-        [HttpGet("/auction/invoice/{amount}/{text}")]
-        public async Task<string> RequestHodlInvoice(string text, long amount)
+        [HttpGet("/auction/invoice/{auctionid}/{amount}/{text}")]
+        public async Task<string> RequestHodlInvoice(string auctionid, string text, long amount)
         {
-            var res = await _auctionService.RequestAuctionEntry(amount, text);
-            return res;
+            var res = await _auctionService.RequestAuctionEntryInvoice(auctionid, amount, text);
+            return res.ToString();
         }
-
         [HttpGet("/auction/winner")]
         public string GetWinningText()
         {
-            return _auctionService.GetWinningMessage();
+            return "";
         }
 
-
-        [HttpGet("/auction/start/{message}/{signature}")]
-        public async void StartNewAuction(string message, string signature)
+        [HttpGet("/auction/start/{duration}")]
+        public async Task<string> StartNewAuction(int duration)
         {
-            (bool valid, string pubkey) = await _lndService.VerifyMessage(message, signature);
-            if(valid && pubkey == AuthorizedPubkey && _auctionService.AuctionFinished())
-            {
-
-                _auctionService.StartAuction();
-            }
+            var res = await _auctionService.StartAuction(duration);
+            return res.ToString();
         }
-        [HttpGet("/auction/end/{message}/{signature}")]
-        public async void EndAuction(string message, string signature)
+        [HttpGet("/auction/end/{auctionid}")]
+        public async Task<string> EndAuction(string auctionId)
         {
-            (bool valid, string pubkey) = await _lndService.VerifyMessage(message, signature);
-            if (valid && pubkey == AuthorizedPubkey)
-            {
-                await _auctionService.EndAuction();
-            }
+            var res = await _auctionService.EndAuction(auctionId);
+            return res.ToString();
+        }
+        [HttpGet("/auction/abort/{auctionid}")]
+        public async Task<string> AbortAuction(string auctionId)
+        {
+            var res = await _auctionService.AbortAuction(auctionId);
+            return res.ToString();
         }
     }
 
     [Serializable]
     public struct AuctionEntries
     {
-        public List<Entry> entries { get; set; }
+        public List<Entry> Entries { get; set; }
     }
 
     [Serializable]
@@ -89,5 +76,10 @@ namespace LightningAuction.Controllers
         public long amount { get; set; }
         public string pHash { get; set; }
         public DateTime AcceptedAt { get; set; }
+    }
+    [Serializable]
+    public struct ListAuctionResponse
+    {
+        public Auction[] Auctions { get; set; }
     }
 }
