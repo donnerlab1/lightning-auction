@@ -4,7 +4,16 @@
 
 
 <h1>Auction List</h1>
+@if (ErrorMsg == "")
+{
 
+}
+else
+{
+    <br />
+    <span style="color:red;font-weight:bold">@ErrorMsg</span>
+    <br />
+}
 
 @if (auctions == null)
 {
@@ -43,10 +52,11 @@ else
 
 @code {
     Auction[] auctions;
-
+    
+    private string ErrorMsg = "";
     protected override async Task OnInitializedAsync()
     {
-        var channel = new Channel("127.0.0.1",5113, ChannelCredentials.Insecure);
+        var channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
         var client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
 
 
@@ -56,11 +66,21 @@ else
 
     private async void RefreshList()
     {
-        var channel = new Channel("127.0.0.1",5113, ChannelCredentials.Insecure);
-        var client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
+        ErrorMsg = "";
+        try
+        {
+            var channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
+            var client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
 
 
-        var res = await client.ListAuctionsAsync(new ListAuctionsRequest { });
-        auctions = res.Auctions.ToArray();
+            var res = await client.ListAuctionsAsync(new ListAuctionsRequest { });
+            auctions = res.Auctions.ToArray();
+        }
+        catch (Exception e)
+        {
+            ErrorMsg = e.Message;
+        }
+        
+            StateHasChanged();
     }
 }

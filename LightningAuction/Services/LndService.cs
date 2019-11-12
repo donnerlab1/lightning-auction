@@ -83,19 +83,20 @@ namespace LightningAuction.Services
         
 
 
-        public async Task<HoldInvoiceResponse> GetHoldInvoice(long amount, string message)
+        public async Task<HoldInvoiceResponse> GetHoldInvoice(long amount, string message, long expiry)
         {
             var preImage = GetRandomBytes();
             var rHash = GetRHash(preImage);
-            var invoice = new Invoice { Value = amount, Memo = message, RHash = Google.Protobuf.ByteString.CopyFrom(rHash), RPreimage = Google.Protobuf.ByteString.CopyFrom(preImage) };
+            var invoice = new Invoice { Value = amount, Memo = message, RHash = Google.Protobuf.ByteString.CopyFrom(rHash), RPreimage = Google.Protobuf.ByteString.CopyFrom(preImage), Expiry= expiry };
 
             OnInvoiceCreated.Invoke(this, invoice, preImage);
-            var res = await invoicesClient.AddHoldInvoiceAsync(new AddHoldInvoiceRequest { Value = amount, Memo = message,Hash = invoice.RHash, CltvExpiry = 400 });
+            var res = await invoicesClient.AddHoldInvoiceAsync(new AddHoldInvoiceRequest { Value = amount, Memo = message,Hash = invoice.RHash, CltvExpiry = 18 });
             var holdInvoiceResponse = new HoldInvoiceResponse
             {
                 paymentHash = rHash,
                 preImage = preImage,
-                payreq = res.PaymentRequest
+                payreq = res.PaymentRequest,
+                
             };
             return holdInvoiceResponse;
         }
@@ -117,7 +118,8 @@ namespace LightningAuction.Services
                         Console.WriteLine("got invoice "+invoice.State.ToString());
                         if (invoice.State == Invoice.Types.InvoiceState.Accepted)
                         {
-                            if(OnHoldInvoiceActivated != null)
+
+                            if (OnHoldInvoiceActivated != null)
                             {
                                 OnHoldInvoiceActivated.Invoke(this, invoice,preImage);
                                 cancellationToken.Cancel();
@@ -129,7 +131,10 @@ namespace LightningAuction.Services
             }catch(RpcException e)
             {
                 Console.WriteLine("ERROR SUBSCRIBTION: " + e.Message);
+                await Task.Delay(100);
+                SubscribeHoldInvoices(rHash, preImage);
             }
+            Console.WriteLine("FINISH SUBSCRIPTION");
 
         }
 
@@ -227,7 +232,7 @@ namespace LightningAuction.Services
 
     public interface ILndService
     {
-        Task<HoldInvoiceResponse> GetHoldInvoice(long amount, string message);
+        Task<HoldInvoiceResponse> GetHoldInvoice(long amount, string message, long expiry);
         void AddHoldInvoiceListener(InvoiceActiveEventHandler e);
 
         void RemoveHoldInvoiceListener(InvoiceActiveEventHandler e);

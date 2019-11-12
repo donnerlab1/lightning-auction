@@ -14,15 +14,16 @@ namespace LightningAuction.Services
 {
     public interface IAuctionService
     {
-        Task<Auction> AbortAuction(string auctionId);
-        Task<Auction> EndAuction(string auctionId);
+        Task<Auction> AbortAuction(Guid auctionId);
+        Task<Auction> EndAuction(Guid auctionId);
         Task<Auction[]> GetAllAuctions(bool onlyFinished, bool onlyActive);
-        Auction GetAuction(string auctionId);
-        Task<AuctionInvoice> GetWinningEntry(string auctionId);
-        Task<AuctionEntry> RequestAuctionEntryInvoice(string auctionId, long amount, string winningMessage);
+        Auction GetAuction(Guid auctionId);
+        Task<AuctionInvoice> GetWinningEntry(Guid auctionId);
+        Task<AuctionEntry> RequestAuctionEntryInvoice(Guid auctionId, long amount, string winningMessage);
         Task<Auction> StartAuction(int duration);
-        Task<AuctionEntry> CancelAuctionEntry(string entryId);
-        Task<AuctionEntry> GetBid(string entryId);
+        Task<AuctionEntry> CancelAuctionEntry(Guid entryId);
+        Task<AuctionEntry> GetBid(Guid entryId);
+        Task<Auction> GetActiveAuction();
     }
 
     public class AuctionService : IAuctionService
@@ -34,8 +35,26 @@ namespace LightningAuction.Services
 
             _lndService = lndService;
             _lndService.AddHoldInvoiceListener(LndService_OnHoldInvoiceActivated);
+            Task.Run(async () => await CleanUpEntries());
         }
 
+        private async Task CleanUpEntries()
+        {
+            using(var context = new AuctionContext())
+            {
+                var entries = context.AuctionEntries.Where(ae => ae.State == AuctionEntryState.ACTIVATED);
+                foreach(var entry in entries)
+                {
+                    var auction = GetAuction(entry.AuctionId);
+                    if(auction.FinishedAt != 0)
+                    {
+                        await CancelAuctionEntry(entry);
+                    }
+
+
+                }
+            }
+        }
         public async Task<Auction> StartAuction(int duration)
         {
             var now = Utility.Utility.DateTimeToUnix(DateTime.UtcNow);
@@ -54,7 +73,7 @@ namespace LightningAuction.Services
             Console.WriteLine("starting auction {0}", auction);
             return auction;
         }
-        public async Task<Auction> EndAuction(string auctionId)
+        public async Task<Auction> EndAuction(Guid auctionId)
         {
 
             var auction = GetAuction(auctionId);
@@ -72,7 +91,7 @@ namespace LightningAuction.Services
 
         }
 
-        public async Task<Auction> AbortAuction(string auctionId)
+        public async Task<Auction> AbortAuction(Guid auctionId)
         {
 
             var auction = GetAuction(auctionId);
@@ -113,22 +132,37 @@ namespace LightningAuction.Services
             }
         }
 
+        public async Task<Auction> GetActiveAuction()
+        {
+            var auctions = await GetAllAuctions(false, true);
+            if (auctions.Length < 1)
+                return null;
+            return auctions[0];
+        }
 
-        public async Task<AuctionEntry> RequestAuctionEntryInvoice(string auctionId, long amount, string winningMessage)
+
+        public async Task<AuctionEntry> RequestAuctionEntryInvoice(Guid auctionId, long amount, string winningMessage)
         {
             var auction = GetAuction(auctionId);
             if (auction == null)
                 return null;
+            var guid = Guid.NewGuid();
             var auctionInvoice = new AuctionInvoice
             {
                 Amount = amount,
                 AuctionId = auction.Id.ToString(),
-                WinningMessage = winningMessage
+                WinningMessage = winningMessage,
+                AuctionEntryId = guid.ToString(),
             };
+            
             var description = JsonSerializer.Serialize<AuctionInvoice>(auctionInvoice);
-            var invoice = await _lndService.GetHoldInvoice(amount, description);
+            var expiry = (auction.Duration + auction.StartedAt) - Utility.Utility.DateTimeToUnix(DateTime.UtcNow);
+            if (expiry < 1)
+                return null;
+            var invoice = await _lndService.GetHoldInvoice(amount, description, expiry);
             var auctionEntry = new AuctionEntry
             {
+                Id = guid,
                 State = AuctionEntryState.CREATED,
                 Amount = amount,
                 Description = description,
@@ -148,12 +182,12 @@ namespace LightningAuction.Services
             Console.WriteLine("created auction entry {0}", auctionEntry);
             return auctionEntry;
         }
-        public async Task<AuctionInvoice> GetWinningEntry(string auctionId)
+        public async Task<AuctionInvoice> GetWinningEntry(Guid auctionId)
         {
             Auction auction;
             using (var context = new AuctionContext())
             {
-                auction = context.Auctions.Include(r => r.WinningEntry).FirstOrDefault(r => r.Id == Guid.Parse(auctionId));
+                auction = context.Auctions.Include(r => r.WinningEntry).FirstOrDefault(r => r.Id == auctionId);
                 if (auction == null)
                     return new AuctionInvoice();
                 return JsonSerializer.Deserialize<AuctionInvoice>(auction.WinningEntry);
@@ -222,28 +256,34 @@ namespace LightningAuction.Services
 
         private async void LndService_OnHoldInvoiceActivated(object sender, Invoice invoice, byte[] preImage)
         {
-            var auctionInvoice = JsonSerializer.Deserialize<AuctionInvoice>(invoice.Memo);
-            using (var context = new AuctionContext())
+
+            Console.WriteLine("In Hodle Activated {0}", invoice);
+            try
             {
-                var auctionEntry = context.AuctionEntries.FirstOrDefault(e => e.PaymentRequest == invoice.PaymentRequest);
-                if (auctionEntry == null)
-                    return;
-
-                var auction = GetAuction(auctionInvoice.AuctionId);
-                if (auction == null)
-                    return;
-                if (auction.FinishedAt != 0)
+                var auctionInvoice = JsonSerializer.Deserialize<AuctionInvoice>(invoice.Memo);
+                using (var context = new AuctionContext())
                 {
-                    await _lndService.CancelHodlInvoice(invoice.RHash.ToByteArray());
-                    return;
-                }
-                    
-                auctionEntry.ActivatedAt = Utility.Utility.DateTimeToUnix(DateTime.UtcNow);
-                auctionEntry.State = AuctionEntryState.ACTIVATED;
-                context.AuctionEntries.Update(auctionEntry);
+                    var auctionEntry = context.AuctionEntries.FirstOrDefault(e => e.PaymentRequest == invoice.PaymentRequest);
+                    var auction = GetAuction(Guid.Parse(auctionInvoice.AuctionId));              
+                    if (auction.FinishedAt != 0)
+                    {
+                        await _lndService.CancelHodlInvoice(invoice.RHash.ToByteArray());
+                        return;
+                    }
 
-                Console.WriteLine("activated auction entry {0}", auctionEntry);
-                await context.SaveChangesAsync();
+                    auctionEntry.ActivatedAt = Utility.Utility.DateTimeToUnix(DateTime.UtcNow);
+                    auctionEntry.State = AuctionEntryState.ACTIVATED;
+                    context.AuctionEntries.Update(auctionEntry);
+
+                    Console.WriteLine("activated auction entry {0}", auctionEntry);
+                    await context.SaveChangesAsync();
+                }
+            }catch(Exception e)
+            {
+
+                Console.WriteLine("ERROR AT HOLD INVOICE ACTIVATED {0}", invoice);
+
+                await _lndService.CancelHodlInvoice(invoice.RHash.ToByteArray());
             }
         }
 
@@ -265,13 +305,13 @@ namespace LightningAuction.Services
             }
             return auctionEntry;
         }
-        public Auction GetAuction(string auctionId)
+        public Auction GetAuction(Guid auctionId)
         {
 
             Auction auction;
             using (var context = new AuctionContext())
             {
-                auction = context.Auctions.Include(r => r.AuctionEntries).FirstOrDefault(r => r.Id == Guid.Parse(auctionId));
+                auction = context.Auctions.Include(r => r.AuctionEntries).FirstOrDefault(r => r.Id == auctionId);
                 if (auction == null)
                     return null;
             }
@@ -279,12 +319,12 @@ namespace LightningAuction.Services
             return auction;
         }
 
-        public async Task<AuctionEntry> CancelAuctionEntry(string entryId)
+        public async Task<AuctionEntry> CancelAuctionEntry(Guid entryId)
         {
             AuctionEntry auctionEntry;
             using (var context = new AuctionContext())
             {
-                auctionEntry = context.AuctionEntries.FirstOrDefault(r => r.Id == Guid.Parse(entryId));
+                auctionEntry = context.AuctionEntries.FirstOrDefault(r => r.Id == entryId);
                 if (auctionEntry == null)
                     return null;
             }
@@ -295,12 +335,12 @@ namespace LightningAuction.Services
             await UpdateAuctionEntry(auctionEntry);
             return auctionEntry;
         }
-        public async Task<AuctionEntry> GetBid(string entryId)
+        public async Task<AuctionEntry> GetBid(Guid entryId)
         {
             AuctionEntry auctionEntry;
             using (var context = new AuctionContext())
             {
-                auctionEntry = context.AuctionEntries.FirstOrDefault(r => r.Id == Guid.Parse(entryId));
+                auctionEntry = context.AuctionEntries.FirstOrDefault(r => r.Id == entryId);
                 if (auctionEntry == null)
                     return null;
             }

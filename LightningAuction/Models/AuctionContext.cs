@@ -100,5 +100,7 @@ namespace LightningAuction.Models
         public string AuctionId { get; set; }
         public long Amount { get; set; }
         public string WinningMessage { get; set; }
+
+        public string AuctionEntryId { get; set; }
     }
 }

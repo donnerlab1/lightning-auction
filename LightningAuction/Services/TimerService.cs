@@ -29,7 +29,7 @@ namespace LightningAuction.Services
                     {
 
                         Console.WriteLine("finishing auction {0}", auction);
-                        await _auctionService.EndAuction(auction.Id.ToString());
+                        await _auctionService.EndAuction(auction.Id);
                     }
                 }
             }

@@ -5,6 +5,16 @@
 
 <h1>Admin Panel</h1>
 
+@if (ErrorMsg == "")
+{
+
+}
+else
+{
+    <br />
+    <span style="color:red;font-weight:bold">@ErrorMsg</span>
+    <br />
+}
 <input type="number" @bind="Duration" />
 <button class="btn btn-primary" @onclick="NewAuction">start auction</button>
 <br />
@@ -73,6 +83,8 @@ else
     private string AuctionId;
     private Auction EndAuction;
 
+    private string ErrorMsg = "";
+
     Channel channel;
     LightningAuctionAdmin.LightningAuctionAdminClient client;
     protected override async Task OnInitializedAsync()
@@ -83,26 +95,47 @@ else
     }
     private async void NewAuction()
     {
-
-        var res = await client.StartAuctionAsync(new StartAuctionRequest
+        ErrorMsg = "";
+        try
         {
-            Duration = Duration
-        });
-        StartAuction = res.Auction;
-        StateHasChanged();
+            var res = await client.StartAuctionAsync(new StartAuctionRequest
+            {
+                Duration = Duration
+            });
+            StartAuction = res.Auction;
+        }
+        catch (Exception e)
+        {
+            ErrorMsg = e.Message;
+        }
+        
+            StateHasChanged();
+
     }
     private async void FinishAuction()
     {
-        if (AuctionId == null || AuctionId == "")
-            return;
-        var res = await client.EndAuctionAsync(new EndAuctionRequest
+
+        ErrorMsg = "";
+        try
         {
-            AuctionId = AuctionId
-        });
-        EndAuction = res.Auction;
+            if (AuctionId == null || AuctionId == "")
+                return;
+            var res = await client.EndAuctionAsync(new EndAuctionRequest
+            {
+                AuctionId = AuctionId
+            });
+            EndAuction = res.Auction;
+
+            Console.WriteLine(EndAuction);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("exception thrown");
+            ErrorMsg = e.Message;
+        }
         
-        Console.WriteLine(EndAuction);
-        StateHasChanged();
+            StateHasChanged();
+
 
     }
 

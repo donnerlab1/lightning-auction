@@ -23,7 +23,22 @@ namespace LightningAuction.Delivery
 
         public override async Task<BidResponse> Bid(BidRequest request, ServerCallContext context)
         {
-            var entry = await _auctionService.RequestAuctionEntryInvoice(request.AuctionId, request.Amount, request.Message);
+            Guid auctionId;
+            if(!Guid.TryParse(request.AuctionId, out auctionId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "auctionid is not a guid"));
+            }
+            if(request.Amount < 1)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "amount must be larger than 0"));
+            }
+            if(request.Message.Length > 140)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "message must be smaller than 140 characters"));
+            }
+            var entry = await _auctionService.RequestAuctionEntryInvoice(auctionId, request.Amount, request.Message);
+            if (entry == null)
+                return new BidResponse();
             var res = new BidResponse
             {
                 Entry = new AuctionEntry
@@ -41,18 +56,46 @@ namespace LightningAuction.Delivery
 
         public override async Task<CancelBidResponse> CancelBid(CancelBidRequest request, ServerCallContext context)
         {
-            var entry = await _auctionService.CancelAuctionEntry(request.EntryId);
+            Guid entryId;
+            if (!Guid.TryParse(request.EntryId, out entryId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "entryid is not a guid"));
+            }
+            var entry = await _auctionService.CancelAuctionEntry(entryId);
+            if(entry == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "could not cancel bid"));
+            }
             var res = new CancelBidResponse
             { 
                 
-                Ok = entry == null? false:true
+                Ok = true
             };
             return res;
         }
 
         public override async Task<GetAuctionResponse> GetAuction(GetAuctionRequest request, ServerCallContext context)
         {
-            var auction = _auctionService.GetAuction(request.AuctionId);
+            Models.Auction auction;
+            if(request.AuctionId == "active")
+            {
+                auction = await _auctionService.GetActiveAuction();
+                if(auction == null )
+                    throw new RpcException(new Status(StatusCode.NotFound, "no active auction running"));
+            }else
+            {
+                Guid auctionId;
+                if (!Guid.TryParse(request.AuctionId, out auctionId))
+                {
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "entryid is not a guid"));
+                }
+                auction = _auctionService.GetAuction(auctionId);
+            }
+            
+            if(auction == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "auction not found"));
+            }
             var res = new GetAuctionResponse
             {
                 Auction = new Auction
@@ -70,7 +113,12 @@ namespace LightningAuction.Delivery
 
         public override async Task<GetBidResponse> GetBid(GetBidRequest request, ServerCallContext context)
         {
-            var entry = await _auctionService.GetBid(request.EntryId);
+            Guid entryId;
+            if (!Guid.TryParse(request.EntryId, out entryId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "entryid is not a guid"));
+            }
+            var entry = await _auctionService.GetBid(entryId);
             if (entry == null)
             {
                 return new GetBidResponse();
@@ -142,7 +190,12 @@ namespace LightningAuction.Delivery
 
         public override async Task<EndAuctionResponse> EndAuction(EndAuctionRequest request, ServerCallContext context)
         {
-            var auction = await _auctionService.EndAuction(request.AuctionId);
+            Guid auctionId;
+            if (!Guid.TryParse(request.AuctionId, out auctionId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "entryid is not a guid"));
+            }
+            var auction = await _auctionService.EndAuction(auctionId);
             Models.AuctionInvoice winningEntry = null;
             try
             {
@@ -180,7 +233,12 @@ namespace LightningAuction.Delivery
 
         public override async Task<AdminGetAuctionResponse> GetAuction(AdminGetAuctionRequest request, ServerCallContext context)
         {
-            var auction = _auctionService.GetAuction(request.AuctionId);
+            Guid auctionId;
+            if (!Guid.TryParse(request.AuctionId, out auctionId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "entryid is not a guid"));
+            }
+            var auction = _auctionService.GetAuction(auctionId);
             
             var res = new AdminGetAuctionResponse
                 {

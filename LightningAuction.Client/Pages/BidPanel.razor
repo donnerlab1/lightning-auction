@@ -5,7 +5,17 @@
 
 <h1>Bid Panel</h1>
 
+@if (ErrorMsg == "")
+{
 
+}
+else
+{
+    <br />
+    <span style="color:red;font-weight:bold">@ErrorMsg</span>
+    <br />
+}
+<span>Active auction: @ActiveAuctionId</span>
 <br />
 <input type="text" @bind="AuctionId" placeholder="AuctionId..." />
 <input type="number" @bind="Amount" placeholder="amount..." />
@@ -14,7 +24,9 @@
 
 <input type="text" @bind="AuctionEntryId" placeholder="BidId..." />
 <button class="btn btn-primary" @onclick="UpdateBid">lookup bid</button>
+<button class="btn btn-primary" @onclick="CancelBid">cancel bid</button>
 <br />
+
 @if (auctionEntry == null)
 {
 
@@ -50,10 +62,12 @@ else
 
 @code {
     private string AuctionId;
+    private string ActiveAuctionId;
     private long Amount;
     private string Text;
     private string AuctionEntryId;
     private AuctionEntry auctionEntry;
+    private string ErrorMsg;
 
     Channel channel;
     LightningAuctionBidder.LightningAuctionBidderClient client;
@@ -61,28 +75,84 @@ else
     {
         channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
         client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
+        await GetActiveAuction();
+    }
 
+    private async Task GetActiveAuction()
+    {
+        ErrorMsg = "";
+        try
+        {
+            var res = await client.GetAuctionAsync(new GetAuctionRequest() { AuctionId = "active" });
+            ActiveAuctionId = res.Auction.Id;
+            AuctionId = res.Auction.Id;
+        }
+        catch (Exception e)
+        {
+            ErrorMsg = e.Message;
+        }
+
+        StateHasChanged();
     }
     private async void AddBid()
     {
-        var res = await client.BidAsync(new BidRequest
+        ErrorMsg = "";
+        try
         {
-            Amount = Amount,
-            AuctionId = AuctionId,
-            Message = Text
-        });
+            var res = await client.BidAsync(new BidRequest
+            {
+                Amount = Amount,
+                AuctionId = AuctionId,
+                Message = Text
+            });
 
-        auctionEntry = res.Entry;
-        Console.WriteLine(res);
+            auctionEntry = res.Entry;
+            AuctionEntryId = res.Entry.Id;
+            Console.WriteLine(res);
+        }
+        catch (Exception e)
+        {
+            ErrorMsg = e.Message;
+        }
+
         StateHasChanged();
+
     }
 
     private async void UpdateBid()
     {
-        var res = await client.GetBidAsync(new GetBidRequest { EntryId = AuctionEntryId });
-        auctionEntry = res.Entry;
-        
-        Console.WriteLine(res);
+        ErrorMsg = "";
+        try
+        {
+            var res = await client.GetBidAsync(new GetBidRequest { EntryId = AuctionEntryId });
+            auctionEntry = res.Entry;
+
+            Console.WriteLine(res);
+        }
+        catch (Exception e)
+        {
+            ErrorMsg = e.Message;
+        }
+
+        StateHasChanged();
+
+    }
+
+    private async void CancelBid()
+    {
+        ErrorMsg = "";
+        try
+        {
+            var res = await client.CancelBidAsync(new CancelBidRequest { EntryId = AuctionEntryId });
+            UpdateBid();
+
+            Console.WriteLine(res);
+        }
+        catch (Exception e)
+        {
+            ErrorMsg = e.Message;
+        }
+
         StateHasChanged();
     }
 
