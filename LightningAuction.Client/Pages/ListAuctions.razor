@@ -38,13 +38,21 @@ else
             @foreach (var auction in auctions)
             {
                 Console.WriteLine(auction);
-                <tr>
-                    <td>@auction.Id</td>
-                    <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auction.StartedAt).ToString()</td>
-                    <td>@auction.Duration seconds</td>
+            <tr>
+                <td>@auction.Id</td>
+                <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auction.StartedAt).ToString()</td>
+                <td>@auction.Duration seconds</td>
+                @if (auction.FinishedAt == 0)
+                {
+
+                    <td>active</td>
+                }
+                else
+                {
                     <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auction.FinishedAt).ToString()</td>
-                    <td>@auction.WinningEntry</td>
-                </tr>
+                }
+                <td>@auction.WinningEntry</td>
+            </tr>
             }
         </tbody>
     </table>
