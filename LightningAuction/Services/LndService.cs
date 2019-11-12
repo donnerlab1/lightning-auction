@@ -90,7 +90,7 @@ namespace LightningAuction.Services
             var invoice = new Invoice { Value = amount, Memo = message, RHash = Google.Protobuf.ByteString.CopyFrom(rHash), RPreimage = Google.Protobuf.ByteString.CopyFrom(preImage), Expiry= expiry };
 
             OnInvoiceCreated.Invoke(this, invoice, preImage);
-            var res = await invoicesClient.AddHoldInvoiceAsync(new AddHoldInvoiceRequest { Value = amount, Memo = message,Hash = invoice.RHash, CltvExpiry = 18 });
+            var res = await invoicesClient.AddHoldInvoiceAsync(new AddHoldInvoiceRequest { Value = amount, Memo = message,Hash = invoice.RHash, CltvExpiry = 144 });
             var holdInvoiceResponse = new HoldInvoiceResponse
             {
                 paymentHash = rHash,

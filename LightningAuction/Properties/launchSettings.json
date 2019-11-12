@@ -1,13 +1,12 @@
-﻿{
-
+{
   "profiles": {
     "LightningText": {
       "commandName": "Project",
-      "launchBrowser": false,
-      "applicationUrl": "http://localhost:5112",
+      "commandLineArgs": "rpc=\"localhost:10009\" admin_pub=\"024b0f1e453299eb39fd629ebc0f881e7714a86eb86f173b11f7606fcb4731e246\" message=\"supersecret\"",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "applicationUrl": "http://localhost:5113"
     }
   }
 }

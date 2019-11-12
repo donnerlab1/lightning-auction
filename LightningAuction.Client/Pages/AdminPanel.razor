@@ -15,6 +15,9 @@ else
     <span style="color:red;font-weight:bold">@ErrorMsg</span>
     <br />
 }
+
+<input type="text" @bind="Signature" placeholder="signature"/>
+<br />
 <input type="number" @bind="Duration" />
 <button class="btn btn-primary" @onclick="NewAuction">start auction</button>
 <br />
@@ -82,6 +85,7 @@ else
     private int Duration = 3600;
     private string AuctionId;
     private Auction EndAuction;
+    private string Signature;
 
     private string ErrorMsg = "";
 
@@ -95,25 +99,33 @@ else
     }
     private async void NewAuction()
     {
+        var callOptions = new CallOptions();
+        var md = new Metadata();
+        md.Add("signature", Signature);
+        callOptions = callOptions.WithHeaders(md);
         ErrorMsg = "";
         try
         {
             var res = await client.StartAuctionAsync(new StartAuctionRequest
             {
                 Duration = Duration
-            });
+            }, callOptions);
             StartAuction = res.Auction;
         }
         catch (Exception e)
         {
             ErrorMsg = e.Message;
         }
-        
-            StateHasChanged();
+
+        StateHasChanged();
 
     }
     private async void FinishAuction()
     {
+        var callOptions = new CallOptions();
+        var md = new Metadata();
+        md.Add("signature", Signature);
+        callOptions = callOptions.WithHeaders(md);
 
         ErrorMsg = "";
         try
@@ -123,7 +135,7 @@ else
             var res = await client.EndAuctionAsync(new EndAuctionRequest
             {
                 AuctionId = AuctionId
-            });
+            },callOptions);
             EndAuction = res.Auction;
 
             Console.WriteLine(EndAuction);
@@ -133,8 +145,8 @@ else
             Console.WriteLine("exception thrown");
             ErrorMsg = e.Message;
         }
-        
-            StateHasChanged();
+
+        StateHasChanged();
 
 
     }

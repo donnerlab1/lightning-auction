@@ -7,7 +7,7 @@ Simple auction using hodl invoices:
 -  place tls.cert and admin macaroon in LightningAuction/LightningAuction folder
 - run `dotnet ef migrations add InitialCreate`
 - run `dotnet ef database update`
-- `dotnet run rpc="host:port" admin_pub="your_pubkey"` in LightningAuction/LightningAuction
+- `dotnet run rpc="host:port" admin_pub="your_pubkey" message="message_to_sign"` in LightningAuction/LightningAuction
 -  sign a message with `lncli signmessage `
 -  `/auction/start/{message}/{signature}` to start the auction
 -  `/auction/invoice/{amount}/{text}` requests a hodl invoice

@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Grpc.Core;
 using LightningAuction.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace LightningAuction.Delivery
@@ -183,13 +184,34 @@ namespace LightningAuction.Delivery
     public class LightningAuctionAdminService : LightningAuctionAdmin.LightningAuctionAdminBase
     {
         IAuctionService _auctionService;
-        public LightningAuctionAdminService(IAuctionService auctionService)
+        ILndService _lnd;
+        readonly string AuthorizedPubkey;
+        readonly string MessageToSign;
+        public LightningAuctionAdminService(IConfiguration config, IAuctionService auctionService, ILndService lndService)
         {
             _auctionService = auctionService;
+            _lnd = lndService;
+            AuthorizedPubkey = config.GetValue<string>("admin_pub");
+            MessageToSign = config.GetValue<string>("message");
+        }
+
+        private async Task<bool> CheckPassword(ServerCallContext context)
+        {
+            
+            var signature = context.RequestHeaders.FirstOrDefault(h => h.Key == "signature");
+            if (signature == null || signature.Value == "")
+                return false;
+            var verify = await _lnd.VerifyMessage(MessageToSign, signature.Value);
+            if (verify.Item1 == true && verify.Item2 == AuthorizedPubkey)
+                return true;
+            return false;
         }
 
         public override async Task<EndAuctionResponse> EndAuction(EndAuctionRequest request, ServerCallContext context)
         {
+            if (!(await CheckPassword(context))){
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "you are not authorized"));
+            }
             Guid auctionId;
             if (!Guid.TryParse(request.AuctionId, out auctionId))
             {
@@ -233,6 +255,10 @@ namespace LightningAuction.Delivery
 
         public override async Task<AdminGetAuctionResponse> GetAuction(AdminGetAuctionRequest request, ServerCallContext context)
         {
+            if (!(await CheckPassword(context)))
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "you are not authorized"));
+            }
             Guid auctionId;
             if (!Guid.TryParse(request.AuctionId, out auctionId))
             {
@@ -272,6 +298,10 @@ namespace LightningAuction.Delivery
 
         public override async Task<ListAuctionsResponse> ListAuctions(ListAuctionsRequest request, ServerCallContext context)
         {
+            if (!(await CheckPassword(context)))
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "you are not authorized"));
+            }
             var auctions = await _auctionService.GetAllAuctions(request.OnlyFinished, request.OnlyActive);
             var res = new ListAuctionsResponse();
             foreach(var auction in auctions)
@@ -308,6 +338,10 @@ namespace LightningAuction.Delivery
 
         public override async Task<StartAuctionResponse> StartAuction(StartAuctionRequest request, ServerCallContext context)
         {
+            if (!(await CheckPassword(context)))
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "you are not authorized"));
+            }
             var auction = await _auctionService.StartAuction(request.Duration);
             return new StartAuctionResponse
             {
