@@ -2,6 +2,7 @@
 
 @using LightningAuction.Delivery
 
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
 
 <h1>Bid Panel</h1>
 
@@ -55,6 +56,41 @@ else
                 <td>@auctionEntry.PaymentRequest</td>
 
             </tr>
+
+        </tbody>
+    </table>
+}
+<br />
+@if (previousBids == null)
+{
+
+}
+else
+{
+    <span>previous bids</span>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>state</th>
+                <th>amount</th>
+                <th>message</th>
+                <th>invoice</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var bid in previousBids)
+            {
+                if (bid == null)
+                    continue;
+            <tr>
+                <td>@bid.Id</td>
+                <td>@bid.State</td>
+                <td>@bid.Amount</td>
+                <td>@bid.Message</td>
+                <td>@bid.PaymentRequest</td>
+            </tr>
+            }
         </tbody>
     </table>
 }
@@ -68,6 +104,8 @@ else
     private string AuctionEntryId;
     private AuctionEntry auctionEntry;
     private string ErrorMsg;
+    private string[] previousBidIds;
+    private AuctionEntry[] previousBids;
 
     Channel channel;
     LightningAuctionBidder.LightningAuctionBidderClient client;
@@ -76,6 +114,15 @@ else
         channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
         client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
         await GetActiveAuction();
+        if (await localStorage.ContainKeyAsync("bids"))
+        {
+            previousBidIds = await localStorage.GetItemAsync<string[]>("bids");
+            UpdateAllBids();
+        }
+        else
+        {
+            await localStorage.SetItemAsync("bids", new string[0]);
+        }
     }
 
     private async Task GetActiveAuction()
@@ -109,12 +156,46 @@ else
             auctionEntry = res.Entry;
             AuctionEntryId = res.Entry.Id;
             Console.WriteLine(res);
+            var bids = await localStorage.GetItemAsync<string[]>("bids");
+            if(bids != null)
+            {
+
+                bids = bids.Prepend(auctionEntry.Id).ToArray();
+                if(bids.Length > 50)
+                {
+                    bids = bids.Take(50).ToArray();
+                }
+                await localStorage.SetItemAsync("bids", bids);
+            }
+            UpdateAllBids();
         }
         catch (Exception e)
         {
             ErrorMsg = e.Message;
         }
 
+        StateHasChanged();
+
+    }
+
+    private async void UpdateAllBids()
+    {
+        var bids = await localStorage.GetItemAsync<string[]>("bids");
+        previousBids = new AuctionEntry[bids.Length];
+        int i = 0;
+        foreach (var bid in bids)
+        {
+            try
+            {
+                var res = await client.GetBidAsync(new GetBidRequest { EntryId = bid });
+                previousBids[i] = res.Entry;
+                i++;
+            }
+            catch (Exception e)
+            {
+                ErrorMsg = e.Message;
+            }
+        }
         StateHasChanged();
 
     }
@@ -135,6 +216,7 @@ else
         }
 
         StateHasChanged();
+        UpdateAllBids();
 
     }
 

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Blazored.LocalStorage;
 
 namespace LightningAuction.Client
 {
@@ -30,6 +31,7 @@ namespace LightningAuction.Client
             {
                 o.Address = new Uri("http://127.0.0.1:5113");
             });
+            services.AddBlazoredLocalStorage();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,6 +1,7 @@
 ﻿@page "/adminpanel"
 
 @using LightningAuction.Delivery
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
 
 
 <h1>Admin Panel</h1>
@@ -16,7 +17,7 @@ else
     <br />
 }
 
-<input type="text" @bind="Signature" placeholder="signature"/>
+<input type="text" @bind="Signature" placeholder="signature" />
 <br />
 <input type="number" @bind="Duration" />
 <button class="btn btn-primary" @onclick="NewAuction">start auction</button>
@@ -93,12 +94,15 @@ else
     LightningAuctionAdmin.LightningAuctionAdminClient client;
     protected override async Task OnInitializedAsync()
     {
+        if (await localStorage.ContainKeyAsync("signature"))
+            Signature = await localStorage.GetItemAsync<string>("signature");
         channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
         client = new LightningAuctionAdmin.LightningAuctionAdminClient(channel);
 
     }
     private async void NewAuction()
     {
+        UpdateSignature();
         var callOptions = new CallOptions();
         var md = new Metadata();
         md.Add("signature", Signature);
@@ -120,8 +124,14 @@ else
         StateHasChanged();
 
     }
+    private async void UpdateSignature()
+    {
+        await localStorage.SetItemAsync("signature", Signature);
+    }
     private async void FinishAuction()
     {
+
+        UpdateSignature();
         var callOptions = new CallOptions();
         var md = new Metadata();
         md.Add("signature", Signature);
@@ -135,7 +145,7 @@ else
             var res = await client.EndAuctionAsync(new EndAuctionRequest
             {
                 AuctionId = AuctionId
-            },callOptions);
+            }, callOptions);
             EndAuction = res.Auction;
 
             Console.WriteLine(EndAuction);

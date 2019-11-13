@@ -16,10 +16,12 @@ namespace LightningAuction.Delivery
 
         private readonly ILogger<LightningAuctionService> _logger;
         private IAuctionService _auctionService;
-        public LightningAuctionService(ILogger<LightningAuctionService> logger, IAuctionService auctionService)
+        private readonly ILndService _lnd;
+        public LightningAuctionService(ILogger<LightningAuctionService> logger, IAuctionService auctionService, ILndService lnd)
         {
             _logger = logger;
             _auctionService = auctionService;
+            _lnd = lnd;
         }
 
         public override async Task<BidResponse> Bid(BidRequest request, ServerCallContext context)
@@ -28,6 +30,17 @@ namespace LightningAuction.Delivery
             if(!Guid.TryParse(request.AuctionId, out auctionId))
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "auctionid is not a guid"));
+            }
+            var auction = _auctionService.GetAuction(auctionId);
+            if(auction == null)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "auction not found"));
+            }
+
+            var expiry = (auction.Duration + auction.StartedAt) - Utility.Utility.DateTimeToUnix(DateTime.UtcNow);
+            if (auction.FinishedAt != 0 ||expiry < 5)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "auction is already finished"));
             }
             if(request.Amount < 1)
             {
@@ -39,7 +52,9 @@ namespace LightningAuction.Delivery
             }
             var entry = await _auctionService.RequestAuctionEntryInvoice(auctionId, request.Amount, request.Message);
             if (entry == null)
-                return new BidResponse();
+            {
+                throw new RpcException(new Status(StatusCode.Internal, "something went wrong..."));
+            }
             var res = new BidResponse
             {
                 Entry = new AuctionEntry
@@ -178,7 +193,15 @@ namespace LightningAuction.Delivery
             return res;
         }
 
-    
+        public override async Task<SimpleChatResponse> SimpleChat(SimpleChatRequest request, ServerCallContext context)
+        {
+            if(request.Amount < 1)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "amount must be larger than 0"));
+            }
+            var res = await _lnd.AddInvoice(request.Message, request.Amount);
+            return new SimpleChatResponse { PayReq = res };
+        }
     }
 
     public class LightningAuctionAdminService : LightningAuctionAdmin.LightningAuctionAdminBase
@@ -202,7 +225,7 @@ namespace LightningAuction.Delivery
             if (signature == null || signature.Value == "")
                 return false;
             var verify = await _lnd.VerifyMessage(MessageToSign, signature.Value);
-            if (verify.Item1 == true && verify.Item2 == AuthorizedPubkey)
+            if (verify.Item2 == AuthorizedPubkey)
                 return true;
             return false;
         }

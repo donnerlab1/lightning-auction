@@ -11,6 +11,7 @@ service LightningAuctionBidder {
 	rpc GetAuction (GetAuctionRequest) returns (GetAuctionResponse);
 	rpc ListAuctions (ListAuctionsRequest) returns (ListAuctionsResponse);
 	rpc SubscribeToBid (SubscribeToBidRequest) returns (stream SubscribeToBidResponse);
+	rpc SimpleChat (SimpleChatRequest) returns (SimpleChatResponse);
 }
 
 service LightningAuctionAdmin {
@@ -19,7 +20,14 @@ service LightningAuctionAdmin {
 	rpc GetAuction (AdminGetAuctionRequest) returns (AdminGetAuctionResponse);
 	rpc ListAuctions (ListAuctionsRequest) returns (ListAuctionsResponse);
 }
+message SimpleChatRequest {
+	int64 amount = 1;
+	string message = 2;
+}
 
+message SimpleChatResponse {
+	string pay_req = 1;
+}
 message StartAuctionRequest {
 	int32 duration = 1;
 }

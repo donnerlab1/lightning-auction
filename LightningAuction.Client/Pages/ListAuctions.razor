@@ -35,24 +35,24 @@ else
             </tr>
         </thead>
         <tbody>
-            @foreach (var auction in auctions)
+            @for (int i = auctions.Length - 1; i > 1; i--)
             {
-                Console.WriteLine(auction);
-            <tr>
-                <td>@auction.Id</td>
-                <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auction.StartedAt).ToString()</td>
-                <td>@auction.Duration seconds</td>
-                @if (auction.FinishedAt == 0)
-                {
+                Console.WriteLine(auctions[i]);
+                <tr>
+                    <td>@auctions[i].Id</td>
+                    <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auctions[i].StartedAt).ToString()</td>
+                    <td>@auctions[i].Duration seconds</td>
+                    @if (auctions[i].FinishedAt == 0)
+                    {
 
-                    <td>active</td>
-                }
-                else
-                {
-                    <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auction.FinishedAt).ToString()</td>
-                }
-                <td>@auction.WinningEntry</td>
-            </tr>
+                        <td>active</td>
+                    }
+                    else
+                    {
+                        <td>@LightningAuction.Utility.Utility.UnixTimeToDateTime(auctions[i].FinishedAt).ToString()</td>
+                    }
+                    <td>@auctions[i].WinningEntry</td>
+                </tr>
             }
         </tbody>
     </table>
@@ -60,7 +60,7 @@ else
 
 @code {
     Auction[] auctions;
-    
+
     private string ErrorMsg = "";
     protected override async Task OnInitializedAsync()
     {
@@ -88,7 +88,7 @@ else
         {
             ErrorMsg = e.Message;
         }
-        
-            StateHasChanged();
+
+        StateHasChanged();
     }
 }

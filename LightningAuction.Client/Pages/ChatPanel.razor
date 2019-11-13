@@ -1,0 +1,77 @@
+﻿@page "/chatpanel"
+
+@using LightningAuction.Delivery
+
+
+<h1>Chat Panel</h1>
+
+@if (ErrorMsg == "")
+{
+
+}
+else
+{
+    <br />
+    <span style="color:red;font-weight:bold">@ErrorMsg</span>
+    <br />
+}
+
+<input type="number" @bind="Amount" placeholder="amount..." />
+<input type="text" @bind="Text" placeholder="text..." />
+<button class="btn btn-primary" @onclick="RequestChat">request invoice</button>
+<br />
+@if (Response == null)
+{
+    <span>waiting for invoice request....</span>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>payreq</th>
+
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr>
+                <td>@Response.PayReq</td>
+
+            </tr>
+
+        </tbody>
+    </table>
+}
+
+
+
+@code {
+    private string Text;
+    private long Amount;
+    private string ErrorMsg = "";
+    private SimpleChatResponse Response;
+
+    Channel channel;
+    LightningAuctionBidder.LightningAuctionBidderClient client;
+    protected override async Task OnInitializedAsync()
+    {
+        channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
+        client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
+
+    }
+
+    private async void RequestChat()
+    {
+        try
+        {
+            Response = await client.SimpleChatAsync(new SimpleChatRequest { Amount = Amount, Message = Text });
+        } catch(Exception e)
+        {
+            ErrorMsg = e.Message;
+        }
+        StateHasChanged();
+
+    }
+
+}
