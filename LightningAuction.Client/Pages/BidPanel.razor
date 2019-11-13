@@ -155,7 +155,6 @@ else
 
             auctionEntry = res.Entry;
             AuctionEntryId = res.Entry.Id;
-            Console.WriteLine(res);
             var bids = await localStorage.GetItemAsync<string[]>("bids");
             if(bids != null)
             {
