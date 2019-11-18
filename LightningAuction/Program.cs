@@ -24,7 +24,7 @@ namespace LightningAuction
                     
                     webBuilder.ConfigureKestrel(options =>
                     {
-                        options.Listen(IPAddress.Parse("127.0.0.1"),5113, listOptions =>
+                        options.Listen(IPAddress.Parse("0.0.0.0"),5113, listOptions =>
                         {
                             listOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2;
                             listOptions.UseConnectionLogging();

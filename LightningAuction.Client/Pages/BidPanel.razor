@@ -114,6 +114,10 @@ else
         channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
         client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
         await GetActiveAuction();
+        
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
         if (await localStorage.ContainKeyAsync("bids"))
         {
             previousBidIds = await localStorage.GetItemAsync<string[]>("bids");
@@ -123,7 +127,10 @@ else
         {
             await localStorage.SetItemAsync("bids", new string[0]);
         }
+        StateHasChanged();
     }
+
+
 
     private async Task GetActiveAuction()
     {

@@ -1,6 +1,7 @@
 ﻿@page "/"
 @namespace LightningAuction.Client.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
 
 <!DOCTYPE html>
 <html lang="en">
@@ -18,5 +19,6 @@
     </app>
 
     <script src="_framework/blazor.server.js"></script>
+
 </body>
 </html>
