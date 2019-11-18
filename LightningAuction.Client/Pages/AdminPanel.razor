@@ -94,11 +94,17 @@ else
     LightningAuctionAdmin.LightningAuctionAdminClient client;
     protected override async Task OnInitializedAsync()
     {
-        if (await localStorage.ContainKeyAsync("signature"))
-            Signature = await localStorage.GetItemAsync<string>("signature");
+        
         channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
         client = new LightningAuctionAdmin.LightningAuctionAdminClient(channel);
 
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    { 
+        if (await localStorage.ContainKeyAsync("signature"))
+            Signature = await localStorage.GetItemAsync<string>("signature");
+        StateHasChanged();
     }
     private async void NewAuction()
     {
