@@ -106,6 +106,7 @@ else
     private string ErrorMsg;
     private string[] previousBidIds;
     private AuctionEntry[] previousBids;
+    private bool setup;
 
     Channel channel;
     LightningAuctionBidder.LightningAuctionBidderClient client;
@@ -114,11 +115,25 @@ else
         channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
         client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
         await GetActiveAuction();
-        
+
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        
+        if (!setup)
+        {
+            if (await localStorage.ContainKeyAsync("bids"))
+        {
+            previousBidIds = await localStorage.GetItemAsync<string[]>("bids");
+            UpdateAllBids();
+        }
+        else
+        {
+            await localStorage.SetItemAsync("bids", new string[0]);
+        }
+            
+            setup = true;
+        StateHasChanged();
+        }
     }
 
 
@@ -136,16 +151,7 @@ else
         {
             ErrorMsg = e.Message;
         }
-        if (await localStorage.ContainKeyAsync("bids"))
-        {
-            previousBidIds = await localStorage.GetItemAsync<string[]>("bids");
-            UpdateAllBids();
-        }
-        else
-        {
-            await localStorage.SetItemAsync("bids", new string[0]);
-        }
-        StateHasChanged();
+        
         StateHasChanged();
     }
     private async void AddBid()
