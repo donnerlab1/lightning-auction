@@ -118,16 +118,7 @@ else
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (await localStorage.ContainKeyAsync("bids"))
-        {
-            previousBidIds = await localStorage.GetItemAsync<string[]>("bids");
-            UpdateAllBids();
-        }
-        else
-        {
-            await localStorage.SetItemAsync("bids", new string[0]);
-        }
-        StateHasChanged();
+        
     }
 
 
@@ -145,7 +136,16 @@ else
         {
             ErrorMsg = e.Message;
         }
-
+        if (await localStorage.ContainKeyAsync("bids"))
+        {
+            previousBidIds = await localStorage.GetItemAsync<string[]>("bids");
+            UpdateAllBids();
+        }
+        else
+        {
+            await localStorage.SetItemAsync("bids", new string[0]);
+        }
+        StateHasChanged();
         StateHasChanged();
     }
     private async void AddBid()
