@@ -29,7 +29,12 @@ namespace LightningAuction.Client
             services.AddServerSideBlazor();
             services.AddGrpcClient<LightningAuction.Delivery.LightningAuctionBidder.LightningAuctionBidderClient>(o =>
             {
-                o.Address = new Uri("http://127.0.0.1:5113");
+                o.Address = new Uri("http://167.172.175.172:5113");
+                
+            });
+            services.AddGrpcClient<Bbh.ClientService.ClientServiceClient>(o =>
+            {
+                o.Address = new Uri("http://127.0.0.1:8899");
             });
             services.AddBlazoredLocalStorage();
         }

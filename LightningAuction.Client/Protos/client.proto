@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package bbh;
+
+service ClientService {
+    rpc GetUsername(GetUsernameRequest) returns (GetUsernameReponse);
+    rpc SetUsername(SetUsernameRequest) returns (SetUsernameResponse);
+    rpc GetHighscore(GetHighscoreRequest) returns (GetHighscoreResponse);
+    rpc AddBounty(AddBountyRequest) returns (AddBountyResponse);
+    rpc ListOnline(ListOnlineRequest) returns (ListOnlineResponse);
+}
+
+message GetUsernameRequest {}
+
+message GetUsernameReponse {
+    string name = 1;
+}
+
+message SetUsernameRequest {
+    string name = 1;
+}
+
+message SetUsernameResponse {
+    string name = 1;
+}
+
+message GetHighscoreRequest {}
+
+message GetHighscoreResponse {
+    repeated Highscore highscores = 1;
+}
+
+message AddBountyRequest {
+    string pubkey = 1;
+    int64 amount = 2;
+    string message = 3;
+}
+message AddBountyResponse {
+    string invoice = 1;
+}
+
+message ListOnlineRequest {
+
+}
+
+message ListOnlineResponse {
+    repeated Player players = 1;
+}
+
+message Player {
+    string name = 1;
+    string pubkey = 2;
+    int64 current_bounty = 3;
+    int32 current_kills = 4;
+    int32 current_deaths = 5;
+}
+
+message Highscore {
+    string name = 1;
+    int32 kills = 2;
+    int32 deaths = 3;
+    int64 earnings = 4;
+    string pubkey = 5;
+}

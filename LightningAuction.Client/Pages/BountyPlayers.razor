@@ -1,0 +1,150 @@
+﻿@page "/bountyplayers"
+
+@using Bbh
+
+
+
+
+<h1>Players</h1>
+@if (ErrorMsg == "")
+{
+
+}
+else
+{
+    <br />
+    <span style="color:red;font-weight:bold">@ErrorMsg</span>
+    <br />
+}
+
+<input type="number" @bind="Amount" placeholder="amount..." />
+<br />
+@if (Response == null)
+{
+    <span>waiting for invoice request....</span>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>payreq</th>
+
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr>
+                <td>@Response.Invoice</td>
+
+            </tr>
+
+        </tbody>
+    </table>
+}
+
+@if (players == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Bounty<button class="btn btn-primary btn-xs" @onclick="ChangeBountySort"><span class="glyphicon glyphicon-refresh"></span></button></th>
+                <th>Kills<button class="btn btn-primary btn-xs" @onclick="ChangeKillSort"><span class="glyphicon glyphicon-refresh"></span></button></th>
+                <th>Deaths  <button class="btn btn-primary btn-xs" @onclick="ChangeDeathSort"><span class="glyphicon glyphicon-refresh"></span></button></th>
+                <th>Request Bounty Invoice</th>
+                <th>
+                    <button class="btn btn-primary" @onclick="RefreshPlayers"><span class="glyphicon glyphicon-refresh"></span>Refresh</button>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < players.Length; i++)
+            {
+                Console.WriteLine(players[i]);
+                var tempint = i;
+                <tr>
+                    <td>@players[i].Name</td>
+                    <td>@players[i].CurrentBounty</td>
+                    <td>@players[i].CurrentKills</td>
+                    <td>@players[i].CurrentDeaths</td>
+                    <td><button class="btn btn-primary" @onclick="@(e => RequestBounty(tempint))"><span class="glyphicon glyphicon-refresh"></span>Request Invoice</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    Player[] players;
+    Bbh.AddBountyResponse Response;
+
+    Channel channel;
+    ClientService.ClientServiceClient _client;
+    Utility.PlayerComparer.SortBy currentSort = Utility.PlayerComparer.SortBy.Bounty;
+    bool flipCompare = false;
+    private string ErrorMsg = "";
+    private long Amount;
+    protected override async Task OnInitializedAsync()
+    {
+        channel = new Channel("167.172.175.172", 8899, ChannelCredentials.Insecure);
+        _client = new ClientService.ClientServiceClient(channel);
+        Response = null;
+        Amount = 100;
+        RefreshPlayers();
+    }
+
+
+    private async void RefreshPlayers()
+    {
+        var res = await _client.ListOnlineAsync(new ListOnlineRequest() { });
+        players = res.Players.ToArray();
+        SortPlayers();
+        StateHasChanged();
+    }
+
+    private void SortPlayers()
+    {
+
+        players = Utility.Utility.SortPlayers(players, currentSort, flipCompare);
+        StateHasChanged();
+    }
+
+    private void ChangeDeathSort()
+    {
+        flipCompare = !flipCompare;
+        currentSort = Utility.PlayerComparer.SortBy.Deaths;
+        SortPlayers();
+    }
+    private void ChangeKillSort()
+    {
+        flipCompare = !flipCompare;
+        currentSort = Utility.PlayerComparer.SortBy.Kills;
+        SortPlayers();
+    }
+    private void ChangeBountySort()
+    {
+        flipCompare = !flipCompare;
+        currentSort = Utility.PlayerComparer.SortBy.Bounty;
+        SortPlayers();
+    }
+
+    private async void RequestBounty(int index)
+    {
+        if (players.Length < index + 1)
+            return;
+        var player = players[index];
+        var res = await _client.AddBountyAsync(new AddBountyRequest()
+        {
+            Pubkey = player.Pubkey,
+            Amount = this.Amount,
+            Message = "increase bounty"
+        });
+        Response = res;
+        StateHasChanged();
+    }
+}
