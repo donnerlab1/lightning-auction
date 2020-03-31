@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightningAuction", "Lightni
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightningAuction.Tests", "LightningAuction.Tests\LightningAuction.Tests.csproj", "{452B9880-F87C-4390-9303-D63AC6EE6014}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningAuction.Client", "LightningAuction.Client\LightningAuction.Client.csproj", "{40408D79-84FE-43CB-B36B-3D29FF671C68}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightningAuction.Client", "LightningAuction.Client\LightningAuction.Client.csproj", "{40408D79-84FE-43CB-B36B-3D29FF671C68}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
