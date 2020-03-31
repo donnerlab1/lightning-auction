@@ -1,0 +1,128 @@
+﻿@page "/advertiserlist"
+
+@using Bbh
+
+
+<h1>Advertiser List</h1>
+@if (ErrorMsg == "")
+{
+
+}
+else
+{
+    <br />
+    <span style="color:red;font-weight:bold">@ErrorMsg</span>
+    <br />
+}
+Enter Sats to pay <input type="number" @bind="Amount" placeholder="amount..." />
+<br />
+@if (Response == null)
+{
+    <span>waiting for invoice request....</span>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>payreq</th>
+
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr>
+                <td>@Response.Invoice</td>
+
+            </tr>
+
+        </tbody>
+    </table>
+}
+
+@if (advertisers == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+
+                <th>Thumbnail</th>
+                <th>Name</th>
+                <th>Url</th>
+                <th>Balance</th>
+                <th>Request Invoice</th>
+                <th>
+                    <button class="btn btn-primary" @onclick="RefreshList"><span class="glyphicon glyphicon-refresh"></span>Refresh</button>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = advertisers.Length - 1; i >= 0; i--)
+            {
+                Console.WriteLine(advertisers[i]);
+                
+                var tempint = i;
+                <tr>
+                    <td>img</td>
+                    <td>@advertisers[i].Name</td>
+                    <td>@advertisers[i].Url</td>
+                    <td>@advertisers[i].Balance</td>
+                    <td><button class="btn btn-primary" @onclick="@(e => RequestInvoice(tempint))"><span class="glyphicon glyphicon-refresh"></span>Request Invoice</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    Advertiser[] advertisers;
+    Channel channel;
+    AdvertiserService.AdvertiserServiceClient _client;
+    DepositAdvertiserResponse Response;
+    private string ErrorMsg = "";
+
+    private long Amount;
+    protected override async Task OnInitializedAsync()
+    {
+        channel = new Channel("127.0.0.1", 8897, ChannelCredentials.Insecure);
+        _client = new AdvertiserService.AdvertiserServiceClient(channel);
+        advertisers = null;
+
+        var res = await _client.ListAdvertisersAsync(new ListAdvertisersRequest { });
+        advertisers = res.Advertisers.ToArray();
+        StateHasChanged();
+    }
+
+    private async void RefreshList()
+    {
+        ErrorMsg = "";
+        try
+        {
+            var res = await _client.ListAdvertisersAsync(new ListAdvertisersRequest { });
+            advertisers = res.Advertisers.ToArray();
+        }
+        catch (Exception e)
+        {
+            ErrorMsg = e.Message;
+        }
+
+        StateHasChanged();
+    }
+    private async void RequestInvoice(int index)
+    {
+        if (advertisers.Length < index + 1)
+            return;
+        var advertiser = advertisers[index];
+        var res = await _client.DepositAdvertiserAsync(new DepositAdvertiserRequest()
+        {
+            Amount = this.Amount,
+            Phash = advertiser.Phash
+        });
+        Response = res;
+        StateHasChanged();
+    }
+}

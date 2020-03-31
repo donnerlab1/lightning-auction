@@ -10,6 +10,12 @@ service ClientService {
     rpc ListOnline(ListOnlineRequest) returns (ListOnlineResponse);
 }
 
+service AdvertiserService {
+    rpc CreateAdvertiser(CreateAdvertiserRequest) returns (CreateAdvertiserResponse);
+    rpc DepositAdvertiser(DepositAdvertiserRequest) returns (DepositAdvertiserResponse);
+    rpc ListAdvertisers(ListAdvertisersRequest) returns (ListAdvertiserResponse);
+}
+
 message GetUsernameRequest {}
 
 message GetUsernameReponse {
@@ -47,6 +53,29 @@ message ListOnlineResponse {
     repeated Player players = 1;
 }
 
+message CreateAdvertiserRequest {
+    string name = 1;
+    string url = 2;
+}
+
+message CreateAdvertiserResponse {
+    string invoice = 1;
+}
+
+message DepositAdvertiserRequest {
+    string phash = 1;
+    int64 amount = 2;
+}
+
+message DepositAdvertiserResponse {
+    string invoice = 1;
+}
+
+message ListAdvertisersRequest{}
+message ListAdvertiserResponse {
+    repeated Advertiser advertisers = 1;
+}
+
 message Player {
     string name = 1;
     string pubkey = 2;
@@ -61,4 +90,12 @@ message Highscore {
     int32 deaths = 3;
     int64 earnings = 4;
     string pubkey = 5;
+}
+
+message Advertiser {
+    string phash = 1;
+    string name = 2;
+    string url = 3;
+    int64 balance = 4;
+    repeated string pic_urls = 5;
 }
