@@ -1,0 +1,84 @@
+﻿@page "/createadvertiser"
+@using Bbh;
+<h1>Create Advertiser</h1>
+
+@if (ErrorMsg == "")
+{
+
+}
+else
+{
+    <br />
+    <span style="color:red;font-weight:bold">@ErrorMsg</span>
+    <br />
+}
+
+
+<div>
+    1. Create a new Advertiser (costs 1000 sats) and pay the invoice<br />
+    Name: <input type="text" @bind="AdvertiserName" placeholder="Name..." /><br />
+    Url: <input type="url" @bind="AdvertiserUrl" placeholder="Url..." /><br />
+    <button class="btn btn-primary" @onclick="RequestCreateAdvertiser"><span class="glyphicon glyphicon-refresh"></span>Create Advertiser</button>
+    @if (response == null)
+    {
+
+    }
+    else
+    {
+        <span>Invoice: @response.Invoice</span> 
+    }
+    <br />
+
+</div>
+<div>
+    2. Enter Phash and Preimage of previous payment, as well as the image you wish to upload
+    <form enctype="multipart/form-data" id="advform"
+        Payment Hash: <input type="text" name="pHash" placeholder="Payment Hash..." /> <br />
+        Preimage: <input type="text" name="preimage" placeholder="Preimage..." /><br />
+
+        <input type="file" name="image" /><br />
+        <button class="btn btn-primary" onclick="postRequest(); return false">Upload Image v2</button>
+    </form>
+    <div id="response">
+        
+    </div>
+    <br />
+</div>
+
+
+
+@code {
+    string AdvertiserName;
+    string AdvertiserUrl;
+
+    string ErrorMsg = "";
+    string ResponseMsg = "";
+    CreateAdvertiserResponse response;
+
+    AdvertiserService.AdvertiserServiceClient _client;
+    Channel channel;
+    protected override async Task OnInitializedAsync()
+    {
+        channel = new Channel("127.0.0.1", 8897, ChannelCredentials.Insecure);
+        _client = new AdvertiserService.AdvertiserServiceClient(channel);
+
+        StateHasChanged();
+    }
+
+    private async void RequestCreateAdvertiser()
+    {
+        if (AdvertiserName == "")
+        {
+            ErrorMsg = "Advertiser name must not be blank";
+            return;
+        }
+        response = await _client.CreateAdvertiserAsync(new CreateAdvertiserRequest
+        {
+            Name = AdvertiserName,
+            Url = AdvertiserUrl,
+        });
+        StateHasChanged();
+
+    }
+
+}
