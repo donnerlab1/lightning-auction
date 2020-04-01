@@ -64,10 +64,10 @@ else
             @for (int i = advertisers.Length - 1; i >= 0; i--)
             {
                 Console.WriteLine(advertisers[i]);
-                
+
                 var tempint = i;
                 <tr>
-                    <td>img</td>
+                    <td><a href="http://@advertisers[i].PicUrls[0]" target="_blank"><img src="http://@advertisers[i].PicUrls[0]" style="width:128px;height:128px;"></a></td>
                     <td>@advertisers[i].Name</td>
                     <td>@advertisers[i].Url</td>
                     <td>@advertisers[i].Balance</td>
