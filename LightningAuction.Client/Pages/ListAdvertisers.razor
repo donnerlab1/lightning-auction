@@ -14,7 +14,7 @@ else
     <span style="color:red;font-weight:bold">@ErrorMsg</span>
     <br />
 }
-Enter Sats to pay <input type="number" @bind="Amount" placeholder="amount..." />
+Enter Sats to top up the advertiser playersatoshis <input type="number" @bind="Amount" placeholder="amount..." /> Each round the game will select advertisers and release playersatoshis.
 <br />
 @if (Response == null)
 {
@@ -53,7 +53,7 @@ else
                 <th>Thumbnail</th>
                 <th>Name</th>
                 <th>Url</th>
-                <th>Balance</th>
+                <th>Player Sats</th>
                 <th>Request Invoice</th>
                 <th>
                     <button class="btn btn-primary" @onclick="RefreshList"><span class="glyphicon glyphicon-refresh"></span>Refresh</button>
@@ -67,7 +67,7 @@ else
 
                 var tempint = i;
                 <tr>
-                    <td><a href="http://@advertisers[i].PicUrls[0]" target="_blank"><img src="http://@advertisers[i].PicUrls[0]" style="width:128px;height:128px;"></a></td>
+                    <td><a href="@advertisers[i].PicUrls[0]" target="_blank"><img src="@advertisers[i].PicUrls[0]" style="width:128px;height:128px;"></a></td>
                     <td>@advertisers[i].Name</td>
                     <td>@advertisers[i].Url</td>
                     <td>@advertisers[i].Balance</td>
@@ -88,7 +88,7 @@ else
     private long Amount;
     protected override async Task OnInitializedAsync()
     {
-        channel = new Channel("127.0.0.1", 8897, ChannelCredentials.Insecure);
+        channel = new Channel("127.0.0.1", 8898, ChannelCredentials.Insecure);
         _client = new AdvertiserService.AdvertiserServiceClient(channel);
         advertisers = null;
 

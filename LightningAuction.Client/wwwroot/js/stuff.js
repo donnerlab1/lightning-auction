@@ -21,6 +21,6 @@ function postRequest() {
         
     }
 
-    xhr.open("post", "http://localhost:8012/ads/upload");
+    xhr.open("post", "https://ads.donnerlab.com/ads/upload");
     xhr.send(data);
 }

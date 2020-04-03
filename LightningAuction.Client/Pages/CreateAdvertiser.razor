@@ -15,7 +15,7 @@ else
 
 
 <div>
-    Create a new Advertiser (cost: 1000 sats) and pay the invoice
+    Create a new Advertiser (cost: 1000 sats) and pay the invoice, The image should be close to 1:1 aspect ratio and max size of 1024x1024, the image will be manually approved (see Guidelines)
     <form enctype="multipart/form-data" id="advform">
     Name: <input type="text" name="name" placeholder="Name..." /> <br />
     Url: <input type="text" name="url" placeholder="Url..." /><br />
@@ -26,6 +26,12 @@ else
 
     </div>
     <br />
+
+    <b>Guidelines</b> <br />
+    1. No NSFW Images
+    2. No copyright infringement
+    3. We will not refund you, if your images is not approved
+
 </div>
 
 
@@ -42,7 +48,7 @@ else
     Channel channel;
     protected override async Task OnInitializedAsync()
     {
-        channel = new Channel("127.0.0.1", 8897, ChannelCredentials.Insecure);
+        channel = new Channel("127.0.0.1", 8898, ChannelCredentials.Insecure);
         _client = new AdvertiserService.AdvertiserServiceClient(channel);
 
         StateHasChanged();
