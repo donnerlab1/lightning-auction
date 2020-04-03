@@ -91,7 +91,7 @@ else
     private long Amount;
     protected override async Task OnInitializedAsync()
     {
-        channel = new Channel("167.172.175.172", 8899, ChannelCredentials.Insecure);
+        channel = new Channel("127.0.0.1", 8898, ChannelCredentials.Insecure);
         _client = new ClientService.ClientServiceClient(channel);
         Response = null;
         Amount = 100;
