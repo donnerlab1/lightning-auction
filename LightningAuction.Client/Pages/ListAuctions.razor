@@ -35,7 +35,7 @@ else
             </tr>
         </thead>
         <tbody>
-            @for (int i = auctions.Length - 1; i > 1; i--)
+            @for (int i = auctions.Length - 1; i >= 0; i--)
             {
                 Console.WriteLine(auctions[i]);
                 <tr>
@@ -62,14 +62,17 @@ else
     Auction[] auctions;
 
     private string ErrorMsg = "";
+    Channel channel;
+    LightningAuctionBidder.LightningAuctionBidderClient client;
     protected override async Task OnInitializedAsync()
     {
-        var channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
-        var client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
+        channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
+        client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
 
 
-        var res = await client.ListAuctionsAsync(new ListAuctionsRequest { });
+        var res = await client.ListAuctionsAsync(new ListAuctionsRequest {OnlyActive =false, OnlyFinished = false});
         auctions = res.Auctions.ToArray();
+        StateHasChanged();
     }
 
     private async void RefreshList()
@@ -77,11 +80,7 @@ else
         ErrorMsg = "";
         try
         {
-            var channel = new Channel("127.0.0.1", 5113, ChannelCredentials.Insecure);
-            var client = new LightningAuctionBidder.LightningAuctionBidderClient(channel);
-
-
-            var res = await client.ListAuctionsAsync(new ListAuctionsRequest { });
+            var res = await client.ListAuctionsAsync(new ListAuctionsRequest {OnlyActive =false, OnlyFinished = false });
             auctions = res.Auctions.ToArray();
         }
         catch (Exception e)
