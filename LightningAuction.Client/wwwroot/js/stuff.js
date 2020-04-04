@@ -21,6 +21,6 @@ function postRequest() {
         
     }
 
-    xhr.open("post", "https://ads.donnerlab.com/ads/upload");
+    xhr.open("post", "https://pics.donnerlab.com/pics/upload");
     xhr.send(data);
 }
